@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- generated on 2026-03-11T17:21:01.645015+10:00 by Eclipse SUMO sumo 1.26.0
+<sumoConfiguration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/sumoConfiguration.xsd">
+
+    <input>
+        <net-file value="C:\Users\samle\AppData\Local\Programs\Microsoft VS Code\2026-03-11-17-20-46\osm.net.xml.gz"/>
+        <route-files value="C:\Users\samle\AppData\Local\Programs\Microsoft VS Code\2026-03-11-17-20-46\trips.trips.xml"/>
+        <additional-files value="C:\Users\samle\AppData\Local\Programs\Microsoft VS Code\2026-03-11-17-20-46\osm_stops.add.xml"/>
+    </input>
+
+    <output>
+        <vehroute-output value="C:\Users\samle\AppData\Local\Programs\Microsoft VS Code\2026-03-11-17-20-46\vehroutes.xml"/>
+        <stop-output value="C:\Users\samle\AppData\Local\Programs\Microsoft VS Code\2026-03-11-17-20-46\stopinfos.xml"/>
+    </output>
+
+    <time>
+        <begin value="0.0"/>
+    </time>
+
+    <processing>
+        <ignore-route-errors value="true"/>
+        <time-to-teleport.disconnected value="0"/>
+    </processing>
+
+    <routing>
+        <device.rerouting.adaptation-interval value="0"/>
+    </routing>
+
+    <report>
+        <aggregate-warnings value="5"/>
+        <error-log value="C:\Users\samle\AppData\Local\Programs\Microsoft VS Code\2026-03-11-17-20-46\trips.trips.xml.errorlog"/>
+        <no-step-log value="true"/>
+    </report>
+
+</sumoConfiguration>
+-->
+
+<routes xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/routes_file.xsd">
+    <vehicle id="0_bus_631:0" type="pt_bus" depart="15.00" departLane="2" arrival="241.00">
+        <route edges="203086244#0 203086244#2 203086244#3 203086244#4 203086244#5 1136419338 1117069530 10539028#1 809933533 -815582706 -807418425#3 -807418425#1 1460018446 493547207#1 493547204 44348551#0 44348551#3 1136419338 165828381 139327106 794265310 776576197 139327098#0 288985250 784545154"/>
+        <stop busStop="-5737782115" duration="30.00"/>
+    </vehicle>
+
+    <vehicle id="1_bus_631:1" type="pt_bus" depart="133.00" departLane="1" arrival="367.00">
+        <route edges="139327105 167571364#1 44348023#0 44348023#1 1038136215 139327110#0 10539028#1 809933533 -815582706 -807418425#3 -807418425#1 1460018446 493547207#1 493547204 44348034#0 1209622645 569766862#0 569766862#0-AddedOffRampEdge 569766862#1 25757262#0 25757262#1 25757262#2 25757262#4"/>
+        <stop busStop="-5737782115" duration="30.00"/>
+    </vehicle>
+
+    <vehicle id="2_bus_900:0" type="pt_bus" depart="165.00" departLane="1" arrival="370.00">
+        <route edges="139327105 167571364#1 44348023#0 44348023#1 1038136215 139327110#0 10539028#1 493547206#0 493547206#1 1460018446 493547207#1 493547204 44348034#0 1209622645 569766862#0 569766862#0-AddedOffRampEdge 569766862#1 25757262#0 25757262#1 25757262#2 25757262#4"/>
+        <stop busStop="5737782118" duration="30.00"/>
+    </vehicle>
+
+    <vehicle id="3_bus_703:0" type="pt_bus" depart="383.00" departLane="2" arrival="604.00">
+        <route edges="203086244#0 203086244#2 203086244#3 203086244#4 203086244#5 1136419338 1117069530 10539028#1 493547206#0 493547206#1 1460018446 493547207#1 493547204 44348551#0 44348551#3 1136419338 165828381 139327106 794265310 776576197 139327098#0 288985250 784545154"/>
+        <stop busStop="5737782109" duration="30.00"/>
+    </vehicle>
+
+    <vehicle id="4_bus_703:1" type="pt_bus" depart="441.00" departLane="1" arrival="666.00">
+        <route edges="139327105 167571364#1 44348023#0 44348023#1 1038136215 139327110#0 10539028#1 493547206#0 493547206#1 1460018446 493547207#1 493547204 44348034#0 1209622645 569766862#0 569766862#0-AddedOffRampEdge 569766862#1 25757262#0 25757262#1 25757262#2 25757262#4"/>
+        <stop busStop="925369830" duration="30.00"/>
+        <stop busStop="8347277150" duration="30.00"/>
+    </vehicle>
+
+</routes>

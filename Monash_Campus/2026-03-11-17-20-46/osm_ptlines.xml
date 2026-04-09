@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- generated on 2026-03-11T17:20:59.547805+10:00 by Eclipse SUMO netconvert 1.26.0
+<netconvertConfiguration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/netconvertConfiguration.xsd">
+
+    <input>
+        <type-files value="${SUMO_HOME}\data\typemap\osmNetconvert.typ.xml,${SUMO_HOME}\data\typemap\osmNetconvertUrbanDe.typ.xml,${SUMO_HOME}\data\typemap\osmNetconvertPedestrians.typ.xml,${SUMO_HOME}\data\typemap\osmNetconvertBicycle.typ.xml,${SUMO_HOME}\data\typemap\osmNetconvertAerialway.typ.xml"/>
+        <osm-files value="osm_bbox.osm.xml.gz"/>
+    </input>
+
+    <output>
+        <output-file value="osm.net.xml.gz"/>
+        <output.street-names value="true"/>
+        <output.original-names value="true"/>
+        <ptstop-output value="osm_stops.add.xml"/>
+        <ptline-output value="osm_ptlines.xml"/>
+        <ptline-clean-up value="true"/>
+    </output>
+
+    <projection>
+        <proj.utm value="true"/>
+    </projection>
+
+    <processing>
+        <geometry.remove value="true"/>
+        <lefthand value="true"/>
+    </processing>
+
+    <tls_building>
+        <tls.discard-simple value="true"/>
+        <tls.join value="true"/>
+        <tls.guess-signals value="true"/>
+        <tls.default-type value="actuated"/>
+    </tls_building>
+
+    <ramp_guessing>
+        <ramps.guess value="true"/>
+    </ramp_guessing>
+
+    <junctions>
+        <junctions.join value="true"/>
+    </junctions>
+
+    <pedestrian>
+        <crossings.guess value="true"/>
+    </pedestrian>
+
+    <railway>
+        <railway.topology.repair value="true"/>
+    </railway>
+
+    <formats>
+        <osm.bike-access value="true"/>
+        <osm.sidewalks value="true"/>
+    </formats>
+
+</netconvertConfiguration>
+-->
+
+<ptLines xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/ptlines_file.xsd">
+    <ptLine id="11198852" name="Bus 631: Waverley Gardens SC =&gt; Southland SC" line="631" type="bus" vClass="bus" color="255,130,0" completeness="0.05" missingAfter="20">
+        <route edges="203086244#0 203086244#2 203086244#3 203086244#4 203086244#5 1136419338 1117069530 10539028#1 493547206#0 493547206#1 1460018446 493547207#1 -815582706 -807418425#3 -807418425#1 -493547206#1 -493547206#0 809933533 493547204 44348551#0 44348551#3 1136419338 165828381 139327106 794265310 776576197 139327098#0 288985250 784545154"/>
+        <busStop id="-5737782115" name="Monash University (Bay E)"/>
+    </ptLine>
+    <ptLine id="2724912" name="Bus 631: Southland SC =&gt; Waverley Gardens SC" line="631" type="bus" vClass="bus" color="255,130,0" completeness="0.04" missingBefore="22" missingAfter="4">
+        <route edges="139327105 167571364#1 44348023#0 44348023#1 1038136215 139327110#0 10539028#1 493547206#0 493547206#1 1460018446 493547207#1 -815582706 -807418425#3 -807418425#1 -493547206#1 -493547206#0 809933533 493547204 44348034#0 1209622645 569766862#0 569766862#0-AddedOffRampEdge 569766862#1 25757262#0 25757262#1 25757262#2 25757262#4"/>
+        <busStop id="-5737782115" name="Monash University (Bay E)"/>
+    </ptLine>
+    <ptLine id="8981021" name="Bus 900: Caulfield railway station =&gt; Stud Park Shopping Centre" line="900" type="bus" vClass="bus" color="255,130,0" completeness="0.07" missingBefore="9" missingAfter="4">
+        <route edges="139327105 167571364#1 44348023#0 44348023#1 1038136215 139327110#0 10539028#1 493547206#0 493547206#1 1460018446 493547207#1 493547204 44348034#0 1209622645 569766862#0 569766862#0-AddedOffRampEdge 569766862#1 25757262#0 25757262#1 25757262#2 25757262#4"/>
+        <busStop id="5737782118" name="Monash University (Bay M)"/>
+    </ptLine>
+    <ptLine id="8997562" name="Bus 703: Blackburn railway station =&gt; Middle Brighton railway station" line="703" type="bus" vClass="bus" color="255,130,0" completeness="0.01" missingBefore="41" missingAfter="54">
+        <route edges="203086244#0 203086244#2 203086244#3 203086244#4 203086244#5 1136419338 1117069530 10539028#1 493547206#0 493547206#1 1460018446 493547207#1 493547204 44348551#0 44348551#3 1136419338 165828381 139327106 794265310 776576197 139327098#0 288985250 784545154"/>
+        <busStop id="5737782109" name="Monash University (Bay K)"/>
+    </ptLine>
+    <ptLine id="8997563" name="Bus 703: Middle Brighton railway station =&gt; Blackburn railway station" line="703" type="bus" vClass="bus" color="255,130,0" completeness="0.10" missingBefore="8" missingAfter="10">
+        <route edges="139327105 167571364#1 44348023#0 44348023#1 1038136215 139327110#0 10539028#1 493547206#0 493547206#1 1460018446 493547207#1 493547204 44348034#0 1209622645 569766862#0 569766862#0-AddedOffRampEdge 569766862#1 25757262#0 25757262#1 25757262#2 25757262#4"/>
+        <busStop id="925369830" name="Monash University (Bay L)"/>
+        <busStop id="8347277150" name="Monash University"/>
+    </ptLine>
+</ptLines>
