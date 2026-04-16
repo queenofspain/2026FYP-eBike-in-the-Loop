@@ -1,18 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- generated on 2026-04-09T15:35:43.443272+10:00 by Eclipse SUMO GUI 1.26.0
+<!-- generated on 2026-04-16T17:50:06.243658+10:00 by Eclipse SUMO GUI 1.26.0
 <sumoConfiguration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/sumoConfiguration.xsd">
 
     <input>
-        <net-file value="C:\aaUniFiles\FYP\Monash_Campus\2026-03-11-17-20-46\osm.net.xml.gz"/>
-        <route-files value="C:\aaUniFiles\FYP\Monash_Campus\2026-03-11-17-20-46\osm_pt.rou.xml,C:\aaUniFiles\FYP\Monash_Campus\2026-03-11-17-20-46\osm.bicycle.trips.xml,C:\aaUniFiles\FYP\Monash_Campus\2026-03-11-17-20-46\osm.bus.trips.xml,C:\aaUniFiles\FYP\Monash_Campus\2026-03-11-17-20-46\osm.passenger.trips.xml,C:\aaUniFiles\FYP\Monash_Campus\2026-03-11-17-20-46\osm.pedestrian.rou.xml"/>
-        <additional-files value="C:\aaUniFiles\FYP\Monash_Campus\2026-03-11-17-20-46\osm.poly.xml.gz,C:\aaUniFiles\FYP\Monash_Campus\2026-03-11-17-20-46\osm_stops.add.xml,C:\aaUniFiles\FYP\Monash_Campus\2026-03-11-17-20-46\output.add.xml"/>
+        <net-file value="C:\aaUniFiles\FYP\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\osm.net.xml.gz"/>
+        <route-files value="C:\aaUniFiles\FYP\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\osm_pt.rou.xml,C:\aaUniFiles\FYP\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\osm.bicycle.trips.xml,C:\aaUniFiles\FYP\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\osm.bus.trips.xml,C:\aaUniFiles\FYP\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\osm.passenger.trips.xml,C:\aaUniFiles\FYP\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\osm.pedestrian.rou.xml"/>
+        <additional-files value="C:\aaUniFiles\FYP\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\osm.poly.xml.gz,C:\aaUniFiles\FYP\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\osm_stops.add.xml,C:\aaUniFiles\FYP\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\output.add.xml"/>
     </input>
 
     <output>
-        <tripinfo-output value="C:\aaUniFiles\FYP\Monash_Campus\2026-03-11-17-20-46\tripinfos.xml"/>
-        <stop-output value="C:\aaUniFiles\FYP\Monash_Campus\2026-03-11-17-20-46\stopinfos.xml"/>
-        <statistic-output value="C:\aaUniFiles\FYP\Monash_Campus\2026-03-11-17-20-46\stats.xml"/>
+        <tripinfo-output value="C:\aaUniFiles\FYP\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\tripinfos.xml"/>
+        <stop-output value="C:\aaUniFiles\FYP\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\stopinfos.xml"/>
+        <statistic-output value="C:\aaUniFiles\FYP\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\stats.xml"/>
     </output>
 
     <time>
@@ -37,11 +37,11 @@
     </report>
 
     <traci_server>
-        <remote-port value="62904"/>
+        <remote-port value="51863"/>
     </traci_server>
 
     <gui_only>
-        <gui-settings-file value="C:\aaUniFiles\FYP\Monash_Campus\2026-03-11-17-20-46\osm.view.xml"/>
+        <gui-settings-file value="C:\aaUniFiles\FYP\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\osm.view.xml"/>
         <start value="true"/>
     </gui_only>
 
@@ -49,30 +49,4 @@
 -->
 
 <tripinfos xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/tripinfo_file.xsd">
-    <tripinfo id="bike1" depart="14.00" departLane="-46129103#1_0" departPos="1.70" departSpeed="0.00" departDelay="0.93" arrival="58.00" arrivalLane="-45897672#1_1" arrivalPos="2.42" arrivalSpeed="5.11" duration="44.00" routeLength="205.34" waitingTime="0.00" waitingCount="0" stopTime="0.00" timeLoss="3.97" rerouteNo="1" devices="tripinfo_bike1 routing_bike1" vType="bike_bicycle" speedFactor="0.94" vaporized=""/>
-    <tripinfo id="veh5" depart="72.00" departLane="24801549#3_0" departPos="5.10" departSpeed="0.00" departDelay="0.36" arrival="117.00" arrivalLane="985461729#0_0" arrivalPos="4.76" arrivalSpeed="8.84" duration="45.00" routeLength="427.49" waitingTime="0.00" waitingCount="0" stopTime="0.00" timeLoss="6.50" rerouteNo="1" devices="tripinfo_veh5 routing_veh5" vType="veh_passenger" speedFactor="0.83" vaporized=""/>
-    <tripinfo id="bus1" depart="41.00" departLane="4577073#4_0" departPos="12.10" departSpeed="0.00" departDelay="0.31" arrival="130.00" arrivalLane="5094893#0_0" arrivalPos="15.73" arrivalSpeed="13.73" duration="89.00" routeLength="1026.80" waitingTime="0.00" waitingCount="0" stopTime="0.00" timeLoss="13.62" rerouteNo="1" devices="tripinfo_bus1 routing_bus1" vType="bus_bus" speedFactor="1.00" vaporized=""/>
-    <tripinfo id="bike6" depart="79.00" departLane="-1037064066#1_0" departPos="1.70" departSpeed="0.00" departDelay="0.56" arrival="130.00" arrivalLane="-4577073#2_0" arrivalPos="6.90" arrivalSpeed="5.03" duration="51.00" routeLength="207.93" waitingTime="0.00" waitingCount="0" stopTime="0.00" timeLoss="6.94" rerouteNo="1" devices="tripinfo_bike6 routing_bike6" vType="bike_bicycle" speedFactor="1.09" vaporized=""/>
-    <tripinfo id="bus0" depart="0.00" departLane="-10670468#0_0" departPos="3.97" departSpeed="0.00" departDelay="0.00" arrival="132.00" arrivalLane="47528871#1_0" arrivalPos="5.67" arrivalSpeed="8.05" duration="132.00" routeLength="1027.04" waitingTime="0.00" waitingCount="0" stopTime="0.00" timeLoss="14.82" rerouteNo="1" devices="tripinfo_bus0 routing_bus0" vType="bus_bus" speedFactor="1.00" vaporized=""/>
-    <tripinfo id="veh1" depart="15.00" departLane="-73530943#0_1" departPos="5.10" departSpeed="0.00" departDelay="0.67" arrival="150.00" arrivalLane="-1209653401_0" arrivalPos="44.00" arrivalSpeed="4.90" duration="135.00" routeLength="651.19" waitingTime="1.00" waitingCount="1" stopTime="0.00" timeLoss="26.96" rerouteNo="1" devices="tripinfo_veh1 routing_veh1" vType="veh_passenger" speedFactor="1.08" vaporized=""/>
-    <tripinfo id="veh0" depart="0.00" departLane="1209653403#0_0" departPos="5.10" departSpeed="0.00" departDelay="0.00" arrival="174.00" arrivalLane="25757262#4_1" arrivalPos="163.13" arrivalSpeed="21.92" duration="174.00" routeLength="1350.27" waitingTime="0.00" waitingCount="0" stopTime="0.00" timeLoss="26.13" rerouteNo="1" devices="tripinfo_veh0 routing_veh0" vType="veh_passenger" speedFactor="1.01" vaporized=""/>
-    <tripinfo id="veh2" depart="29.00" departLane="988996003_0" departPos="5.10" departSpeed="0.00" departDelay="0.35" arrival="188.00" arrivalLane="4909721_0" arrivalPos="172.55" arrivalSpeed="12.81" duration="159.00" routeLength="997.71" waitingTime="0.00" waitingCount="0" stopTime="0.00" timeLoss="20.33" rerouteNo="1" devices="tripinfo_veh2 routing_veh2" vType="veh_passenger" speedFactor="1.01" vaporized=""/>
-    <personinfo id="ped9" depart="72.00" type="ped_pedestrian" speedFactor="1.09" duration="121.00" waitingTime="4.00" timeLoss="16.18" traveltime="121.00">
-        <walk depart="72.00" departPos="0.00" arrival="193.00" arrivalPos="33.00" duration="121.00" routeLength="158.97" timeLoss="16.18" maxSpeed="1.52" waitingTime="4.00"/>
-    </personinfo>
-    <personinfo id="ped19" depart="150.00" type="ped_pedestrian" speedFactor="1.02" duration="63.00" waitingTime="0.00" timeLoss="8.04" traveltime="63.00">
-        <walk depart="150.00" departPos="0.00" arrival="213.00" arrivalPos="11.51" duration="63.00" routeLength="77.62" timeLoss="8.04" maxSpeed="1.41" waitingTime="0.00"/>
-    </personinfo>
-    <tripinfo id="bike8" depart="105.00" departLane="-4577076#1_0" departPos="1.70" departSpeed="0.00" departDelay="0.41" arrival="223.00" arrivalLane="238187954#1_0" arrivalPos="41.75" arrivalSpeed="5.36" duration="118.00" routeLength="627.43" waitingTime="0.00" waitingCount="0" stopTime="0.00" timeLoss="9.02" rerouteNo="1" devices="tripinfo_bike8 routing_bike8" vType="bike_bicycle" speedFactor="1.05" vaporized=""/>
-    <tripinfo id="veh7" depart="101.00" departLane="-630680455#0_0" departPos="5.10" departSpeed="0.00" departDelay="0.71" arrival="225.00" arrivalLane="1117069526_1" arrivalPos="10.89" arrivalSpeed="16.39" duration="124.00" routeLength="971.14" waitingTime="29.00" waitingCount="1" stopTime="0.00" timeLoss="53.13" rerouteNo="1" devices="tripinfo_veh7 routing_veh7" vType="veh_passenger" speedFactor="0.92" vaporized=""/>
-    <tripinfo id="bike0" depart="0.00" departLane="250248456_0" departPos="1.70" departSpeed="0.00" departDelay="0.00" arrival="229.00" arrivalLane="-1011594504#3_0" arrivalPos="56.86" arrivalSpeed="5.77" duration="229.00" routeLength="1225.38" waitingTime="0.00" waitingCount="0" stopTime="0.00" timeLoss="20.27" rerouteNo="1" devices="tripinfo_bike0 routing_bike0" vType="bike_bicycle" speedFactor="1.06" vaporized=""/>
-    <tripinfo id="bike4" depart="53.00" departLane="-985091885#9_0" departPos="1.70" departSpeed="0.00" departDelay="0.70" arrival="231.00" arrivalLane="-1037064066#1_0" arrivalPos="42.90" arrivalSpeed="2.36" duration="178.00" routeLength="793.34" waitingTime="0.00" waitingCount="0" stopTime="0.00" timeLoss="16.48" rerouteNo="1" devices="tripinfo_bike4 routing_bike4" vType="bike_bicycle" speedFactor="0.94" vaporized=""/>
-    <tripinfo id="veh4" depart="58.00" departLane="-1470433046#3_0" departPos="5.10" departSpeed="0.00" departDelay="0.69" arrival="235.00" arrivalLane="-45897672#2_0" arrivalPos="27.72" arrivalSpeed="8.97" duration="177.00" routeLength="985.85" waitingTime="85.00" waitingCount="1" stopTime="0.00" timeLoss="106.22" rerouteNo="1" devices="tripinfo_veh4 routing_veh4" vType="veh_passenger" speedFactor="0.89" vaporized=""/>
-    <tripinfo id="veh6" depart="86.00" departLane="-10670468#4_0" departPos="5.10" departSpeed="12.12" departDelay="0.04" arrival="235.00" arrivalLane="139327109#2_1" arrivalPos="6.62" arrivalSpeed="18.35" duration="149.00" routeLength="1167.66" waitingTime="11.00" waitingCount="1" stopTime="0.00" timeLoss="35.31" rerouteNo="1" devices="tripinfo_veh6 routing_veh6" vType="veh_passenger" speedFactor="0.87" vaporized=""/>
-    <personinfo id="ped2" depart="16.00" type="ped_pedestrian" speedFactor="1.02" duration="220.00" waitingTime="0.00" timeLoss="21.57" traveltime="220.00">
-        <walk depart="16.00" departPos="0.00" arrival="236.00" arrivalPos="15.98" duration="220.00" routeLength="281.02" timeLoss="21.57" maxSpeed="1.42" waitingTime="0.00"/>
-    </personinfo>
-    <tripinfo id="veh10" depart="144.00" departLane="988996004_0" departPos="5.10" departSpeed="0.00" departDelay="0.73" arrival="238.00" arrivalLane="139327109#0_1" arrivalPos="46.50" arrivalSpeed="20.14" duration="94.00" routeLength="855.34" waitingTime="11.00" waitingCount="2" stopTime="0.00" timeLoss="36.78" rerouteNo="1" devices="tripinfo_veh10 routing_veh10" vType="veh_passenger" speedFactor="0.93" vaporized=""/>
-    <tripinfo id="bus3" depart="123.00" departLane="-10585181#6_0" departPos="6.62" departSpeed="0.00" departDelay="0.94" arrival="248.00" arrivalLane="139327109#0_1" arrivalPos="46.50" arrivalSpeed="17.77" duration="125.00" routeLength="1018.40" waitingTime="8.00" waitingCount="2" stopTime="0.00" timeLoss="50.70" rerouteNo="1" devices="tripinfo_bus3 routing_bus3" vType="bus_bus" speedFactor="1.00" vaporized=""/>
-    <tripinfo id="veh12" depart="172.00" departLane="24801549#1_0" departPos="5.10" departSpeed="0.00" departDelay="0.08" arrival="256.00" arrivalLane="-5094887#0_0" arrivalPos="67.51" arrivalSpeed="15.12" duration="84.00" routeLength="680.50" waitingTime="0.00" waitingCount="0" stopTime="0.00" timeLoss="39.80" rerouteNo="1" devices="tripinfo_veh12 routing_veh12" vType="veh_passenger" speedFactor="1.15" vaporized=""/>
 </tripinfos>

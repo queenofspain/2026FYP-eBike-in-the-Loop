@@ -1,8 +1,12 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 from datetime import datetime
 
 app = Flask(__name__)
 latest_data = {}
+
+@app.route("/")
+def index():
+    return render_template("index_new.html")
 
 @app.after_request
 def add_cors_headers(response):
