@@ -6,7 +6,7 @@ import xml.etree.ElementTree as ET
 
 # ---------- USER SETTINGS ----------
 SUMO_CFG = r"2026-03-11-17-20-46/osm.sumocfg"
-FLASK_LATEST_URL = "http://118.139.73.177:5000/latest"
+FLASK_LATEST_URL = "http://localhost:5000/latest"
 
 VEHICLE_ID = "ebike0"
 VEHICLE_TYPE_ID = "bike_live"
