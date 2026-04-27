@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- generated on 2026-04-26T16:05:14.566305+10:00 by Eclipse SUMO GUI 1.26.0
+<sumoConfiguration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/sumoConfiguration.xsd">
+
+    <input>
+        <net-file value="C:\Uni\Final Year Project\Code\Edited Code\Monash_Campus\2026-04-25-22-15-28\osm.net.xml.gz"/>
+        <route-files value="C:\Uni\Final Year Project\Code\Edited Code\Monash_Campus\2026-04-25-22-15-28\osm.passenger.trips.xml"/>
+        <additional-files value="C:\Uni\Final Year Project\Code\Edited Code\Monash_Campus\2026-04-25-22-15-28\osm.poly.xml.gz,C:\Uni\Final Year Project\Code\Edited Code\Monash_Campus\2026-04-25-22-15-28\output.add.xml"/>
+    </input>
+
+    <output>
+        <tripinfo-output value="C:\Uni\Final Year Project\Code\Edited Code\Monash_Campus\2026-04-25-22-15-28\tripinfos.xml"/>
+        <statistic-output value="C:\Uni\Final Year Project\Code\Edited Code\Monash_Campus\2026-04-25-22-15-28\stats.xml"/>
+    </output>
+
+    <time>
+        <end value="1000000"/>
+        <step-length value="1.0"/>
+    </time>
+
+    <processing>
+        <ignore-route-errors value="true"/>
+        <tls.actuated.jam-threshold value="30"/>
+    </processing>
+
+    <routing>
+        <device.rerouting.adaptation-steps value="18"/>
+        <device.rerouting.adaptation-interval value="10"/>
+    </routing>
+
+    <report>
+        <verbose value="true"/>
+        <duration-log.statistics value="true"/>
+        <no-step-log value="true"/>
+    </report>
+
+    <traci_server>
+        <remote-port value="61612"/>
+    </traci_server>
+
+    <gui_only>
+        <gui-settings-file value="C:\Uni\Final Year Project\Code\Edited Code\Monash_Campus\2026-04-25-22-15-28\osm.view.xml"/>
+        <start value="true"/>
+    </gui_only>
+
+</sumoConfiguration>
+-->
+
+<tripinfos xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/tripinfo_file.xsd">
+</tripinfos>
