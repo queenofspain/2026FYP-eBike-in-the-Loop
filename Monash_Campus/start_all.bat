@@ -5,11 +5,11 @@ REM  Opens 3 windows: Flask server, ngrok tunnel, SUMO bridge
 REM ============================================================
 
 REM --- EDIT THESE IF NEEDED ---
-set "PROJECT_DIR=C:\aaUniFiles\FYP\2026FYP-eBike-in-the-Loop\Monash_Campus"
-set "NGROK_DOMAIN=kennedy-duelistic-favoredly.ngrok-free.dev"
+set "PROJECT_DIR=C:\Uni\Final Year Project\Code\Edited Code\Monash_Campus"
+set "NGROK_DOMAIN=outward-expanse-result.ngrok-free.dev"
 set "NGROK_AUTH=bike:bikebike"
 set "FLASK_PORT=5000"
-set "SUMO_SCRIPT=live_phone_to_sumo.py"
+set "SUMO_SCRIPT=EDITED_live_phone_to_sumo.py"
 set "SERVER_SCRIPT=server.py"
 REM ----------------------------
 
@@ -28,7 +28,19 @@ echo [launcher] Waiting for tunnel to come up...
 timeout /t 4 /nobreak >nul
 
 echo.
-echo [launcher] All three processes launched in separate windows.
-echo [launcher] Phone URL: https://%NGROK_DOMAIN%/
+echo ============================================================
+echo  Tunnel should now be active.
+echo  Phone URL: https://%NGROK_DOMAIN%/
+echo  Please open the website on your device and press START
+echo  off
+echo  Please press enter...
+echo ============================================================
 echo.
+pause
+
+echo [launcher] Starting SUMO bridge script...
+start "SUMO Bridge" cmd /k "cd /d %PROJECT_DIR% && python %SUMO_SCRIPT%"
+
+echo.
+echo [launcher] All processes launched.
 pause

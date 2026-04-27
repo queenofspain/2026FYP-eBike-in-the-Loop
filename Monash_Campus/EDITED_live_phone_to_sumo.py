@@ -6,7 +6,13 @@ import xml.etree.ElementTree as ET
 import csv
 
 # ---------- USER SETTINGS ----------
-SUMO_CFG = r"2026-04-25-22-15-28/osm.sumocfg"
+
+# ---------- Monash Clayton ---------
+SUMO_CFG = r"2026-03-11-17-20-46/osm.sumocfg"
+
+# ---------- Jordan's house ---------
+# SUMO_CFG = r"2026-04-25-22-15-28/osm.sumocfg"
+
 FLASK_LATEST_URL = "http://localhost:5000/latest"
 
 VEHICLE_ID = "ebike0"
@@ -108,20 +114,23 @@ def spawn_vehicle_if_missing():
     if vehicle_exists():
         return True
 
-    route_id = f"route_{VEHICLE_ID}"
+    # route_id = f"route_{VEHICLE_ID}"
 
-    edge_ids = traci.edge.getIDList()
-    usable_edges = [e for e in edge_ids if not e.startswith(":")]
+    # edge_ids = traci.edge.getIDList()
+    # usable_edges = [e for e in edge_ids if not e.startswith(":")]
 
-    if not usable_edges:
-        print("[ERROR] No usable edges found in network.")
-        return False
+    # if not usable_edges:
+    #     print("[ERROR] No usable edges found in network.")
+    #     return False
 
-    first_edge = usable_edges[0]
+    # first_edge = usable_edges[0]
 
     try:
+        route_id = "block_route"
         if route_id not in traci.route.getIDList():
-            traci.route.add(route_id, [first_edge])
+            # traci.route.add(route_id, [first_edge])
+            print(f"[ERROR] Route '{route_id}' not loaded from .rou.xml")
+            return False
 
         traci.vehicle.add(
             vehID=VEHICLE_ID,
@@ -136,7 +145,7 @@ def spawn_vehicle_if_missing():
         traci.vehicle.setSpeedMode(VEHICLE_ID, 0)
         traci.vehicle.setSpeed(VEHICLE_ID, 0.0)
 
-        print(f"[INFO] Spawned {VEHICLE_ID} on edge {first_edge}")
+        print(f"[INFO] Spawned {VEHICLE_ID} on route {route_id}")
         return True
 
     except traci.TraCIException as e:
@@ -191,7 +200,7 @@ def move_vehicle_to_phone_position(lat: float, lon: float, speed_mps: float | No
             x=x,
             y=y,
             angle=angle_to_use,
-            keepRoute=0,
+            keepRoute=1,
             matchThreshold=MATCH_THRESHOLD
         )
     except traci.TraCIException as e:

@@ -7,7 +7,7 @@
 
     <input>
         <net-file value="osm.net.xml.gz"/>
-        <route-files value="osm_pt.rou.xml,osm.bicycle.trips.xml,osm.bus.trips.xml,osm.passenger.trips.xml,osm.pedestrian.rou.xml"/>
+        <route-files value="osm_pt.rou.xml,osm.bicycle.trips.xml,osm.bus.trips.xml,osm.passenger.trips.xml,osm.pedestrian.rou.xml,around_n1_route.rou.xml"/>
         <additional-files value="osm.poly.xml.gz,osm_stops.add.xml,output.add.xml"/>
     </input>
 
