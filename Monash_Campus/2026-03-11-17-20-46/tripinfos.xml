@@ -1,24 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- generated on 2026-04-27T17:03:17.574381+10:00 by Eclipse SUMO GUI 1.26.0
+<!-- generated on 2026-04-29T16:55:43.982902+10:00 by Eclipse SUMO GUI 1.26.0
 <sumoConfiguration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/sumoConfiguration.xsd">
 
     <input>
-        <net-file value="C:\Uni\Final Year Project\Code\Edited Code\Monash_Campus\2026-03-11-17-20-46\osm.net.xml.gz"/>
-        <route-files value="C:\Uni\Final Year Project\Code\Edited Code\Monash_Campus\2026-03-11-17-20-46\osm_pt.rou.xml,C:\Uni\Final Year Project\Code\Edited Code\Monash_Campus\2026-03-11-17-20-46\osm.bicycle.trips.xml,C:\Uni\Final Year Project\Code\Edited Code\Monash_Campus\2026-03-11-17-20-46\osm.bus.trips.xml,C:\Uni\Final Year Project\Code\Edited Code\Monash_Campus\2026-03-11-17-20-46\osm.passenger.trips.xml,C:\Uni\Final Year Project\Code\Edited Code\Monash_Campus\2026-03-11-17-20-46\osm.pedestrian.rou.xml,C:\Uni\Final Year Project\Code\Edited Code\Monash_Campus\2026-03-11-17-20-46\around_n1_route.rou.xml"/>
-        <additional-files value="C:\Uni\Final Year Project\Code\Edited Code\Monash_Campus\2026-03-11-17-20-46\osm.poly.xml.gz,C:\Uni\Final Year Project\Code\Edited Code\Monash_Campus\2026-03-11-17-20-46\osm_stops.add.xml,C:\Uni\Final Year Project\Code\Edited Code\Monash_Campus\2026-03-11-17-20-46\output.add.xml"/>
+        <net-file value="osm.net.xml.gz"/>
+        <route-files value="osm_pt.rou.xml,osm.bicycle.trips.xml,osm.bus.trips.xml,osm.passenger.trips.xml,osm.pedestrian.rou.xml,around_n1_route.rou.xml"/>
+        <additional-files value="osm.poly.xml.gz,osm_stops.add.xml,output.add.xml"/>
     </input>
 
     <output>
-        <tripinfo-output value="C:\Uni\Final Year Project\Code\Edited Code\Monash_Campus\2026-03-11-17-20-46\tripinfos.xml"/>
-        <stop-output value="C:\Uni\Final Year Project\Code\Edited Code\Monash_Campus\2026-03-11-17-20-46\stopinfos.xml"/>
-        <statistic-output value="C:\Uni\Final Year Project\Code\Edited Code\Monash_Campus\2026-03-11-17-20-46\stats.xml"/>
+        <tripinfo-output value="tripinfos.xml"/>
+        <stop-output value="stopinfos.xml"/>
+        <statistic-output value="stats.xml"/>
     </output>
-
-    <time>
-        <end value="1000000"/>
-        <step-length value="1.0"/>
-    </time>
 
     <processing>
         <ignore-route-errors value="true"/>
@@ -36,17 +31,12 @@
         <no-step-log value="true"/>
     </report>
 
-    <traci_server>
-        <remote-port value="56868"/>
-    </traci_server>
-
     <gui_only>
-        <gui-settings-file value="C:\Uni\Final Year Project\Code\Edited Code\Monash_Campus\2026-03-11-17-20-46\osm.view.xml"/>
-        <start value="true"/>
+        <gui-settings-file value="osm.view.xml"/>
     </gui_only>
 
 </sumoConfiguration>
 -->
 
 <tripinfos xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/tripinfo_file.xsd">
-    <tripinfo id="bike1" depart="14.00" departLane="-46129103#1_0" departPos="1.70" departSpeed="0.00" departDelay="0.93" arrival="58.00" arrivalLane="-45897672#1_1" arrivalPos="2.42" arrivalSpeed="5.11" duration="44.00" routeLength="205.34" waitingTime="0.00" waitingCount="0" stopTime="0.00" timeLoss="3.91" rerouteNo="1" devices="tripinfo_bike1 routing_bike1" vType="bike_bicycle" speedFactor="0.94" vaporized=""/>
+</tripinfos>
