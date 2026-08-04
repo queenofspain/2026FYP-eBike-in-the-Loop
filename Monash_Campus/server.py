@@ -18,7 +18,7 @@ def add_cors_headers(response):
 @app.route("/update", methods=["POST", "OPTIONS"])
 def update():
     global latest_data
-
+    
     if request.method == "OPTIONS":
         return ("", 204)
 
