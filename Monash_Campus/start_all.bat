@@ -5,7 +5,10 @@ REM  Opens 3 windows: Flask server, ngrok tunnel, SUMO bridge
 REM ============================================================
 
 REM --- EDIT THESE IF NEEDED ---
-set "PROJECT_DIR=C:\Uni\Final Year Project\Code\Edited Code\Monash_Campus"
+@REM local folder
+@REM set "PROJECT_DIR=C:\Uni\Final Year Project\Code\Edited Code\Monash_Campus"
+@REM git folder
+set "PROJECT_DIR=C:\Uni\Final Year Project\2026FYP-eBike-in-the-Loop\Monash_Campus"
 set "NGROK_DOMAIN=outward-expanse-result.ngrok-free.dev"
 set "NGROK_AUTH=bike:bikebike"
 set "FLASK_PORT=5000"
