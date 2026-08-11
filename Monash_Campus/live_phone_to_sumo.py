@@ -7,7 +7,7 @@ This is the TraCI-side half of the pipeline. It does three jobs on a loop:
 
     1. Poll the Flask server for the newest GPS fix the phone posted.
     2. Convert that lat/lon into SUMO network (x, y) coordinates and hand
-       it to the topological map-matcher.
+       it to the ST-Matching map-matcher.
     3. Move the virtual eBike to the matched position inside a running
        SUMO simulation via traci.vehicle.moveToXY().
 
@@ -19,14 +19,25 @@ Data flow for one update:
     this script --(HTTP GET)--> Flask /latest --> convertGeo() --> (x, y)
                                   |
                                   v
-                        TopologicalMatcher.match(x, y, course, speed)
+                   STMatcher.match(x, y, timestamp, speed, course)
                                   |
                                   v
                         traci.vehicle.moveToXY(...)  --> eBike moves
 
 The matcher already decides the final on-edge position, so the vehicle is
-placed with keepRoute=2 (exact placement, no re-snapping by SUMO). If the
-matcher returns nothing, the code falls back to the raw converted point.
+placed with keepRoute=2 (exact placement, no re-snapping by SUMO).
+
+NO FALLBACK TO NATIVE MATCHING. If the matcher returns nothing, the update
+is SKIPPED entirely and the bike holds its last position. Falling back to
+SUMO's own snapping would silently mix native results into the method's
+CMP score and make the five-method comparison meaningless. A skipped fix
+is visible in the logs; a contaminated one is not.
+
+TIMESTAMPS: unlike the topological matcher, ST-Matching needs the elapsed
+time between fixes for its temporal term, so the phone's own fix time is
+parsed and passed through. Phone time is used rather than arrival time
+because the temporal term is about how fast the RIDER moved, not how fast
+the network delivered the packet.
 ----------------------------------------------------------------------
 """
 
@@ -35,9 +46,10 @@ import sys
 import time
 import requests
 import xml.etree.ElementTree as ET
+from datetime import datetime
 
 # ---------- USER SETTINGS ----------
-# Path to the SUMO scenario config, relative to this script's launch dir.
+# Path to the SUMO scenario config, relative to this script's own directory.
 SUMO_CFG = r"2026-03-11-17-20-46/osm.sumocfg"
 # Endpoint on the Flask server that returns the most recent phone fix.
 FLASK_LATEST_URL = "http://localhost:5000/latest"
@@ -51,6 +63,17 @@ POLL_INTERVAL = 1.0        # seconds between polls of the Flask server
 STALE_DATA_SECONDS = 5.0   # ignore phone fixes older than this
 SUMO_STEP_LENGTH = 1.0     # simulation seconds advanced per step
 MATCH_THRESHOLD = 100.0    # moveToXY search radius (m) for candidate edges
+
+# ---- ST-Matching parameters ----
+# These are the knobs to sweep when tuning. They are named here rather than
+# buried in the constructor call so a parameter sweep is a one-line edit.
+ST_SEARCH_RADIUS = 50.0    # m; hard cutoff for candidate edge lookup
+ST_SIGMA = 20.0            # m; GPS error std for the observation probability
+ST_WINDOW_SIZE = 8         # fixes held in the fixed-lag Viterbi window
+ST_MAX_CANDIDATES = 5      # per fix; transition cost is quadratic in this
+ST_TEMPORAL_MODE = "lou"   # "lou" (faithful) | "ratio" (corrected) | "off"
+ST_SPEED_REFERENCE = None  # m/s; set to rescale car speed limits for a bike
+ST_VCLASS = None           # e.g. "bicycle" to reject disallowed edges
 # ----------------------------------
 
 # SUMO ships its Python TraCI library under $SUMO_HOME/tools, so that path
@@ -65,8 +88,16 @@ if TOOLS not in sys.path:
     sys.path.append(TOOLS)
 
 import traci
-# The topological map-matcher lives in topological.py alongside this file.
-from topological import TopologicalMatcher
+# The ST-Matching map-matcher lives in st_matching.py alongside this file.
+from STMatching import STMatcher
+
+# Built once in main(), read inside move_vehicle_to_phone_position().
+MATCHER = None
+
+# Anchor relative paths to THIS FILE's directory, not the working directory,
+# so the script runs correctly regardless of where it was launched from.
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+
 
 def parse_sumocfg_for_netfile(sumocfg_path: str) -> str:
     """
@@ -137,7 +168,6 @@ def phone_data_is_fresh(data, stale_seconds: float) -> bool:
         return False
 
     try:
-        from datetime import datetime
         # Normalise a trailing "Z" to an explicit +00:00 offset so
         # fromisoformat() can parse it.
         t = received.replace("Z", "+00:00")
@@ -148,6 +178,24 @@ def phone_data_is_fresh(data, stale_seconds: float) -> bool:
     except Exception:
         # Any parse failure is treated as "not fresh" rather than crashing.
         return False
+
+
+def phone_timestamp_seconds(ts_raw):
+    """
+    Convert the phone's ISO-8601 fix time into epoch seconds (float).
+
+    ST-Matching divides by the elapsed time between fixes, so this feeds the
+    temporal term directly. The phone's OWN timestamp is used rather than
+    the server arrival time: network jitter would otherwise show up as the
+    rider changing speed. Returns None if unparseable, in which case the
+    matcher falls back to its nominal_dt.
+    """
+    if not ts_raw:
+        return None
+    try:
+        return datetime.fromisoformat(str(ts_raw).replace("Z", "+00:00")).timestamp()
+    except Exception:
+        return None
 
 
 def ensure_vehicle_type():
@@ -247,6 +295,10 @@ def parse_course_deg(course_deg_raw):
     isn't available, so anything negative is rejected. Valid values are
     normalised into the 0..360 range. INVALID_DOUBLE_VALUE is SUMO's
     sentinel that tells moveToXY "no angle supplied, work it out yourself".
+
+    NOTE: ST-Matching itself does not use heading -- Lou's formulation has
+    no heading term. The angle is still parsed and passed to moveToXY so the
+    bike is drawn facing the right way in the GUI.
     """
     try:
         if course_deg_raw is None:
@@ -264,13 +316,20 @@ def parse_course_deg(course_deg_raw):
         return traci.constants.INVALID_DOUBLE_VALUE
 
 
-def move_vehicle_to_phone_position(lat: float, lon: float, speed_mps: float | None, course_deg_raw):
+def _fmt(value, spec=".3f"):
+    """Format a float for the log line, or '--' if it's None."""
+    # The ST components are legitimately None on the first fix of a route and
+    # whenever the Viterbi chain restarts, so the logger has to tolerate it.
+    return format(value, spec) if value is not None else "--"
+
+
+def move_vehicle_to_phone_position(lat, lon, speed_mps, course_deg_raw, fix_time):
     """
-    Convert one GPS fix to SUMO coordinates, run the matcher, and move the
+    Convert one GPS fix to SUMO coordinates, run ST-Matching, and move the
     controlled bike there. Respawns the vehicle first if it disappeared.
 
-    Uses the phone course as the vehicle angle when available, and prints
-    both the phone-reported and SUMO-reported speed/course for comparison.
+    If the matcher returns None the update is skipped -- see the module
+    docstring on why there is deliberately no native-matching fallback.
     """
     # Nothing to move if the vehicle can't be (re)created.
     if not spawn_vehicle_if_missing():
@@ -280,7 +339,6 @@ def move_vehicle_to_phone_position(lat: float, lon: float, speed_mps: float | No
         # Project lat/lon into the network's local Cartesian frame. Note
         # convertGeo takes (lon, lat) order with fromGeo=True.
         x, y = traci.simulation.convertGeo(lon, lat, fromGeo=True)
-        # edge_id, pos, lane_index = traci.simulation.convertRoad(lon, lat, isGeo=True)
     except traci.TraCIException as e:
         print(f"[WARN] Geo conversion failed: {e}")
         return
@@ -294,39 +352,41 @@ def move_vehicle_to_phone_position(lat: float, lon: float, speed_mps: float | No
     if course_for_match == traci.constants.INVALID_DOUBLE_VALUE:
         course_for_match = None
 
-    # Run the topological matcher on the converted point. It's wrapped in a
-    # broad try/except so a matcher bug degrades to the fallback path below
-    # rather than killing the simulation loop.
+    # Run ST-Matching on the converted point. Wrapped in a broad try/except
+    # so a matcher bug skips one fix rather than killing the loop.
+    # match_ms is the per-fix matching latency -- ST-Matching runs Viterbi
+    # over a window with shortest-path queries per candidate pair, so this is
+    # the expensive method and the number the real-time claim rests on.
+    match_start = time.perf_counter()
     try:
-        result = MATCHER.match(x, y, course_deg=course_for_match, speed_mps=speed_mps)
+        result = MATCHER.match(
+            x, y,
+            timestamp=fix_time,
+            speed_mps=speed_mps,
+            course_deg=course_for_match,
+        )
     except Exception:
         import traceback
         print("[ERROR] Matcher raised:")
         traceback.print_exc()
         result = None
+    match_ms = (time.perf_counter() - match_start) * 1000.0
 
-    if result is not None:
-        # Matcher succeeded: use its chosen on-edge (x, y) and edge id.
-        # keep_route = 2 means "trust the matcher, place exactly here".
-        move_x, move_y = result["x"], result["y"]
-        edge_id = result["edge_id"]
-        lane_index = 0
-        keep_route = 2
-    else:
-        # Matcher returned nothing: fall back to the raw converted point and
-        # let SUMO's own geometric snapping (convertRoad) pick the edge.
-        # keep_route = 0 would let SUMO re-map this point to the network.
-        move_x, move_y = x, y
-        try:
-            edge_id, _pos, lane_index = traci.simulation.convertRoad(lon, lat, isGeo=True)
-        except traci.TraCIException:
-            edge_id, lane_index = "", 0
-        keep_route = 0
+    # No match -> skip this fix entirely. The bike holds its last position.
+    if result is None:
+        print(f"[SKIP] No candidate edge within {ST_SEARCH_RADIUS:.0f} m "
+              f"of ({x:.1f}, {y:.1f}) -- update skipped ({match_ms:.1f} ms)")
+        return
 
-    # NOTE: keepRoute is hardcoded to 2 here regardless of the keep_route
-    # value computed just above. With keepRoute=2, SUMO ignores edgeID /
-    # laneIndex and places the bike at exactly (move_x, move_y) without
-    # re-snapping, which is what the matched path wants.
+    # Matcher succeeded: use its chosen on-edge (x, y) and edge id.
+    move_x, move_y = result["x"], result["y"]
+    edge_id = result["edge_id"]
+    lane_index = 0
+
+    # keepRoute=2 places the bike at exactly (move_x, move_y) without
+    # re-snapping, so the matcher's decision survives. Anything else lets
+    # SUMO's native matching override it at precisely the junctions this
+    # project is about.
     try:
         traci.vehicle.moveToXY(
             vehID=VEHICLE_ID,
@@ -380,10 +440,28 @@ def move_vehicle_to_phone_position(lat: float, lon: float, speed_mps: float | No
     sumo_angle_str = f"{sumo_angle_deg:.1f} deg" if sumo_angle_deg is not None else "N/A"
     phone_course_str = f"{phone_course_deg:.1f} deg" if phone_course_deg is not None else "N/A"
 
-    # One-line telemetry summary per update. NOTE: xy here prints the raw
-    # converted (x, y), not the matched (move_x, move_y) actually used.
+    # How far the matcher moved the point off the raw GPS reading. Large
+    # values are not automatically errors -- correcting noise is the whole
+    # point -- but a persistent large offset is worth investigating.
+    correction_m = ((move_x - x) ** 2 + (move_y - y) ** 2) ** 0.5
+
+    # ST score components. trans and ft are the two terms that the header
+    # comment in st_matching.py predicts will be uninformative at 1 Hz;
+    # watching them here is the quickest sanity check of that prediction.
+    comps = result.get("components", {})
+
+    # One line per update. xy is the MATCHED position actually sent to
+    # moveToXY; raw is the unmodified converted GPS point.
     print(
-        f"[OK] {VEHICLE_ID} -> edge={edge_id}, lane={lane_index}, xy=({x:.1f}, {y:.1f}) | "
+        f"[OK] {VEHICLE_ID} -> edge={edge_id}, "
+        f"xy=({move_x:.1f}, {move_y:.1f}), raw=({x:.1f}, {y:.1f}), "
+        f"corr={correction_m:.2f} m | "
+        f"win={result.get('window_len', '--')} "
+        f"obs={_fmt(comps.get('obs'), '.5f')} "
+        f"trans={_fmt(comps.get('trans'))} "
+        f"fs={_fmt(comps.get('fs'), '.5f')} "
+        f"ft={_fmt(comps.get('ft'))} | "
+        f"match={match_ms:.1f} ms | "
         f"PHONE speed={phone_speed_mps:.2f} m/s ({phone_speed_kmh:.2f} km/h), "
         f"PHONE course={phone_course_str} | "
         f"SUMO speed={sumo_speed_str}, SUMO angle={sumo_angle_str}"
@@ -395,20 +473,32 @@ def main():
     # so it has to be declared global before first assignment.
     global MATCHER
 
-    # Resolve and validate the SUMO config path up front.
-    sumocfg_abs = os.path.abspath(SUMO_CFG)
+    # Resolve and validate the SUMO config path up front, anchored to this
+    # script's directory so the launch dir doesn't matter.
+    sumocfg_abs = os.path.abspath(os.path.join(SCRIPT_DIR, SUMO_CFG))
     if not os.path.exists(sumocfg_abs):
         raise FileNotFoundError(f"SUMO config not found: {sumocfg_abs}")
 
     # Extract the .net.xml path the matcher needs from the config.
     net_file = parse_sumocfg_for_netfile(sumocfg_abs)
 
-    # COMMENT BASED ON MAP MATCHING TECH
     # Build the matcher once (it loads the whole network with sumolib, which
     # is relatively expensive) and reuse it for every fix.
-    print("[INFO] Loading network into topological matcher...")
-    MATCHER = TopologicalMatcher(net_file)
-    print("[INFO] Topological matcher ready.")
+    print("[INFO] Loading network into ST-Matching matcher...")
+    MATCHER = STMatcher(
+        net_file,
+        search_radius=ST_SEARCH_RADIUS,
+        sigma=ST_SIGMA,
+        window_size=ST_WINDOW_SIZE,
+        max_candidates=ST_MAX_CANDIDATES,
+        temporal_mode=ST_TEMPORAL_MODE,
+        speed_reference=ST_SPEED_REFERENCE,
+        nominal_dt=POLL_INTERVAL,
+        vclass=ST_VCLASS,
+    )
+    print(f"[INFO] ST-Matching ready "
+          f"(window={ST_WINDOW_SIZE}, candidates={ST_MAX_CANDIDATES}, "
+          f"temporal={ST_TEMPORAL_MODE}).")
 
     print(f"[INFO] SUMO config: {sumocfg_abs}")
     print(f"[INFO] Net file:    {net_file}")
@@ -417,11 +507,14 @@ def main():
     # Launch SUMO under TraCI's control:
     #   sumo-gui        -> visual front-end (use "sumo" for headless)
     #   --start         -> begin stepping immediately, no manual play
+    #   --delay         -> GUI pacing; handled by SUMO so its event loop
+    #                      keeps running (a manual sleep() starves the GUI)
     #   --end 1000000   -> effectively never auto-terminate
     traci.start([
         "sumo-gui",
         "-c", sumocfg_abs,
         "--step-length", str(SUMO_STEP_LENGTH),
+        "--delay", str(SUMO_STEP_LENGTH * 1000.0),
         "--start",
         "--end", "1000000"
     ])
@@ -437,8 +530,8 @@ def main():
     try:
         # ---- Main real-time loop ----
         while True:
-            step_start = time.time()
-            # Advance the simulation by one step every iteration.
+            # Advance the simulation by one step every iteration. SUMO's
+            # --delay handles the pacing, so there is no sleep() here.
             traci.simulationStep()
 
             now = time.time()
@@ -473,13 +566,13 @@ def main():
 
                         course_deg = data.get("course_deg")
 
-                        # Do the actual convert -> match -> move for this fix.
-                        move_vehicle_to_phone_position(lat, lon, speed_mps, course_deg)
+                        # Fix time in epoch seconds for the temporal term.
+                        fix_time = phone_timestamp_seconds(phone_timestamp)
 
-            # Pace the loop to roughly real time: sleep off whatever remains
-            # of this step's wall-clock budget after the work above.
-            elapsed = time.time() - step_start
-            time.sleep(max(0.0, SUMO_STEP_LENGTH - elapsed))
+                        # Do the actual convert -> match -> move for this fix.
+                        move_vehicle_to_phone_position(
+                            lat, lon, speed_mps, course_deg, fix_time
+                        )
 
     except KeyboardInterrupt:
         # Ctrl+C is the intended way to stop; exit the loop cleanly.
