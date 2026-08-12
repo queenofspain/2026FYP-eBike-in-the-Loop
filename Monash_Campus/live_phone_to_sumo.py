@@ -1,3 +1,17 @@
+"""
+live_phone_to_sumo.py
+======================================================================
+Bridges live phone GPS to the SUMO simulation over TraCI: polls the
+Flask server for the newest GPS fix, converts it to SUMO network (x, y)
+coordinates, runs it through the HMM map-matcher, and moves the virtual
+eBike to the matched position via traci.vehicle.moveToXY().
+
+If no candidate edge is found within HMM_SEARCH_RADIUS, falls back to
+SUMO's own native geometric snapping (convertRoad + keepRoute=0) for
+that one fix, so the bike keeps moving rather than stalling.
+----------------------------------------------------------------------
+"""
+
 import os
 import sys
 import time
@@ -15,6 +29,16 @@ POLL_INTERVAL = 1.0
 STALE_DATA_SECONDS = 5.0
 SUMO_STEP_LENGTH = 1.0
 MATCH_THRESHOLD = 100.0
+
+# ---- HMM matching parameters ----
+# These are the knobs to sweep when tuning against the ground-truth route.
+HMM_SEARCH_RADIUS = 50.0    # m; hard cutoff for candidate edge lookup
+HMM_SIGMA_DEFAULT = 4.07    # m; Newson & Krumm's GPS error std, used when
+                             # the phone reports no accuracy_m
+HMM_BETA = 0.2               # detour-tolerance scale for the transition term
+HMM_MAX_CANDIDATES = 5      # per fix; transition cost is quadratic in this
+HMM_USE_ACCURACY = True     # use the phone's per-fix accuracy_m as sigma
+HMM_VCLASS = None           # e.g. "bicycle" to reject disallowed edges
 # ----------------------------------
 
 if "SUMO_HOME" not in os.environ:
@@ -26,6 +50,11 @@ if TOOLS not in sys.path:
     sys.path.append(TOOLS)
 
 import traci
+# The HMM map-matcher lives in HMM.py alongside this file.
+from HMM import HMMMatcher
+
+# Built once in main(), read inside move_vehicle_to_phone_position().
+MATCHER = None
 
 
 def parse_sumocfg_for_netfile(sumocfg_path: str) -> str:
@@ -159,34 +188,90 @@ def parse_course_deg(course_deg_raw):
         return traci.constants.INVALID_DOUBLE_VALUE
 
 
-def move_vehicle_to_phone_position(lat: float, lon: float, speed_mps: float | None, course_deg_raw):
+def _fmt(value, spec=".3f"):
+    """Format a float for the log line, or '--' if it's None."""
+    # HMM's transition component is legitimately None on the first fix of a
+    # route and whenever the chain restarts, so the logger has to tolerate it.
+    return format(value, spec) if value is not None else "--"
+
+
+def move_vehicle_to_phone_position(lat: float, lon: float, speed_mps: float | None,
+                                    course_deg_raw, accuracy_m: float | None = None):
     """
-    Convert GPS to SUMO coordinates and move the controlled bike.
-    Respawns vehicle if it disappeared.
-    Uses phone course as the vehicle angle when available.
-    Prints both phone and SUMO speed/course.
+    Convert one GPS fix to SUMO coordinates, run the HMM matcher, and move
+    the controlled bike there. Respawns the vehicle first if it disappeared.
+
+    Uses the phone course as the vehicle angle when available, and prints
+    both the phone-reported and SUMO-reported speed/course for comparison.
+
+    Falls back to SUMO's own geometric snapping when the matcher finds no
+    candidate edge within HMM_SEARCH_RADIUS, so the bike keeps moving
+    instead of stalling on a bad fix.
     """
     if not spawn_vehicle_if_missing():
         return
 
     try:
         x, y = traci.simulation.convertGeo(lon, lat, fromGeo=True)
-        edge_id, pos, lane_index = traci.simulation.convertRoad(lon, lat, isGeo=True)
     except traci.TraCIException as e:
         print(f"[WARN] Geo conversion failed: {e}")
         return
 
     angle_to_use = parse_course_deg(course_deg_raw)
 
+    # The matcher wants a plain float or None for heading, so translate
+    # SUMO's INVALID sentinel back into None before calling it.
+    course_for_match = angle_to_use
+    if course_for_match == traci.constants.INVALID_DOUBLE_VALUE:
+        course_for_match = None
+
+    # Run the HMM matcher on the converted point. Wrapped in a broad
+    # try/except so a matcher bug degrades to the fallback path below
+    # rather than killing the simulation loop.
+    match_start = time.perf_counter()
+    try:
+        result = MATCHER.match(
+            x, y,
+            course_deg=course_for_match,
+            speed_mps=speed_mps,
+            accuracy_m=accuracy_m,
+        )
+    except Exception:
+        import traceback
+        print("[ERROR] Matcher raised:")
+        traceback.print_exc()
+        result = None
+    match_ms = (time.perf_counter() - match_start) * 1000.0
+
+    if result is not None:
+        # Matcher succeeded: use its chosen on-edge (x, y) and edge id.
+        # keepRoute=2 means "trust the matcher, place exactly here".
+        move_x, move_y = result["x"], result["y"]
+        edge_id = result["edge_id"]
+        lane_index = 0
+        keep_route = 2
+    else:
+        # No candidate within HMM_SEARCH_RADIUS: fall back to the raw
+        # converted point and let SUMO's own geometric snapping pick the
+        # edge, so the bike keeps moving rather than stalling.
+        move_x, move_y = x, y
+        try:
+            edge_id, _pos, lane_index = traci.simulation.convertRoad(lon, lat, isGeo=True)
+        except traci.TraCIException:
+            edge_id, lane_index = "", 0
+        keep_route = 0
+        print(f"[WARN] No HMM candidate within {HMM_SEARCH_RADIUS:.0f} m "
+              f"of ({x:.1f}, {y:.1f}) -- falling back to native matching")
+
     try:
         traci.vehicle.moveToXY(
             vehID=VEHICLE_ID,
             edgeID=edge_id,
             laneIndex=lane_index,
-            x=x,
-            y=y,
+            x=move_x,
+            y=move_y,
             angle=angle_to_use,
-            keepRoute=0,
+            keepRoute=keep_route,
             matchThreshold=MATCH_THRESHOLD
         )
     except traci.TraCIException as e:
@@ -226,8 +311,18 @@ def move_vehicle_to_phone_position(lat: float, lon: float, speed_mps: float | No
     sumo_angle_str = f"{sumo_angle_deg:.1f} deg" if sumo_angle_deg is not None else "N/A"
     phone_course_str = f"{phone_course_deg:.1f} deg" if phone_course_deg is not None else "N/A"
 
+    # How far the matcher moved the point off the raw GPS reading.
+    correction_m = ((move_x - x) ** 2 + (move_y - y) ** 2) ** 0.5
+    comps = result.get("components", {}) if result is not None else {}
+
     print(
-        f"[OK] {VEHICLE_ID} -> edge={edge_id}, lane={lane_index}, xy=({x:.1f}, {y:.1f}) | "
+        f"[OK] {VEHICLE_ID} -> edge={edge_id}, lane={lane_index}, "
+        f"xy=({move_x:.1f}, {move_y:.1f}), raw=({x:.1f}, {y:.1f}), corr={correction_m:.2f} m | "
+        f"sigma={_fmt(comps.get('sigma'), '.2f')} "
+        f"emis={_fmt(comps.get('emission'))} "
+        f"trans={_fmt(comps.get('transition'))} "
+        f"cands={comps.get('num_candidates', '--')} | "
+        f"match={match_ms:.1f} ms | "
         f"PHONE speed={phone_speed_mps:.2f} m/s ({phone_speed_kmh:.2f} km/h), "
         f"PHONE course={phone_course_str} | "
         f"SUMO speed={sumo_speed_str}, SUMO angle={sumo_angle_str}"
@@ -235,11 +330,29 @@ def move_vehicle_to_phone_position(lat: float, lon: float, speed_mps: float | No
 
 
 def main():
+    # MATCHER is assigned here and read inside move_vehicle_to_phone_position,
+    # so it has to be declared global before first assignment.
+    global MATCHER
+
     sumocfg_abs = os.path.abspath(SUMO_CFG)
     if not os.path.exists(sumocfg_abs):
         raise FileNotFoundError(f"SUMO config not found: {sumocfg_abs}")
 
     net_file = parse_sumocfg_for_netfile(sumocfg_abs)
+
+    # Build the matcher once (it loads the whole network with sumolib, which
+    # is relatively expensive) and reuse it for every fix.
+    print("[INFO] Loading network into HMM matcher...")
+    MATCHER = HMMMatcher(
+        net_file,
+        search_radius=HMM_SEARCH_RADIUS,
+        sigma_default=HMM_SIGMA_DEFAULT,
+        beta=HMM_BETA,
+        max_candidates=HMM_MAX_CANDIDATES,
+        use_accuracy=HMM_USE_ACCURACY,
+        vclass=HMM_VCLASS,
+    )
+    print(f"[INFO] HMM matcher ready (sigma_default={HMM_SIGMA_DEFAULT}, beta={HMM_BETA}).")
 
     print(f"[INFO] SUMO config: {sumocfg_abs}")
     print(f"[INFO] Net file:    {net_file}")
@@ -289,7 +402,14 @@ def main():
 
                         course_deg = data.get("course_deg")
 
-                        move_vehicle_to_phone_position(lat, lon, speed_mps, course_deg)
+                        try:
+                            accuracy_m = float(data["accuracy_m"]) if data.get("accuracy_m") is not None else None
+                        except Exception:
+                            accuracy_m = None
+
+                        move_vehicle_to_phone_position(
+                            lat, lon, speed_mps, course_deg, accuracy_m=accuracy_m
+                        )
 
             elapsed = time.time() - step_start
             time.sleep(max(0.0, SUMO_STEP_LENGTH - elapsed))
