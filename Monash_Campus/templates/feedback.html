@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Rider Feedback Monitor</title>
+  <style>
+    :root {
+      --bg: #0b0d10;
+      --panel: #151a21;
+      --line: #28313d;
+      --text: #f3f7fb;
+      --muted: #9aa8b6;
+      --ok: #23c483;
+      --warn: #f4b740;
+      --danger: #f05d5e;
+      --info: #4da3ff;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 18px 22px;
+      border-bottom: 1px solid var(--line);
+      background: #10141a;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 20px;
+    }
+
+    .connection {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--muted);
+    }
+
+    .dot.ok { background: var(--ok); }
+    .dot.warn { background: var(--warn); }
+    .dot.danger { background: var(--danger); }
+
+    main {
+      display: grid;
+      grid-template-columns: minmax(280px, 0.9fr) minmax(340px, 1.1fr);
+      gap: 18px;
+      padding: 18px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+
+    .status {
+      display: grid;
+      gap: 18px;
+      padding: 22px;
+    }
+
+    .level {
+      min-height: 150px;
+      display: grid;
+      align-content: center;
+      gap: 10px;
+      padding: 22px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: #1b222b;
+    }
+
+    .level.ok { border-color: rgba(35, 196, 131, 0.55); background: rgba(35, 196, 131, 0.12); }
+    .level.warn { border-color: rgba(244, 183, 64, 0.65); background: rgba(244, 183, 64, 0.14); }
+    .level.danger { border-color: rgba(240, 93, 94, 0.7); background: rgba(240, 93, 94, 0.15); }
+
+    .label {
+      color: var(--muted);
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .level-value {
+      font-size: clamp(34px, 7vw, 72px);
+      font-weight: 800;
+      line-height: 0.95;
+    }
+
+    .message {
+      font-size: 22px;
+      line-height: 1.25;
+    }
+
+    .speed-value {
+      font-size: clamp(54px, 12vw, 116px);
+      line-height: 0.95;
+      font-weight: 800;
+    }
+
+    .bar-row {
+      display: grid;
+      grid-template-columns: 140px 1fr 70px;
+      align-items: center;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .bar-track {
+      height: 10px;
+      background: #242b34;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      width: 0%;
+      height: 100%;
+      background: var(--info);
+      transition: width 0.2s ease, background 0.2s ease;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      overflow: hidden;
+    }
+
+    .metric {
+      min-height: 122px;
+      padding: 18px;
+      border-right: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      display: grid;
+      align-content: center;
+      gap: 8px;
+    }
+
+    .metric:nth-child(2n) { border-right: 0; }
+
+    .metric-value {
+      min-width: 0;
+      overflow-wrap: anywhere;
+      font-size: 24px;
+      font-weight: 700;
+      line-height: 1.15;
+    }
+
+    .metric-sub {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    @media (max-width: 820px) {
+      header, main { grid-template-columns: 1fr; }
+      header { align-items: flex-start; flex-direction: column; }
+      .grid { grid-template-columns: 1fr; }
+      .metric { border-right: 0; }
+      .bar-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Rider Feedback Monitor</h1>
+    <div class="connection">
+      <span class="dot" id="connectionDot"></span>
+      <span id="connectionText">Connecting to Flask</span>
+    </div>
+  </header>
+
+  <main>
+    <section class="panel status">
+      <div class="level" id="levelPanel">
+        <div class="label">Feedback</div>
+        <div class="level-value" id="levelValue">WAIT</div>
+        <div class="message" id="message">Waiting for SUMO feedback</div>
+      </div>
+
+      <div>
+        <div class="speed-value" id="speedValue">0.0</div>
+        <div class="label">km/h SUMO speed</div>
+      </div>
+
+      <div class="bar-row">
+        <span>Speed limit use</span>
+        <div class="bar-track"><div class="bar-fill" id="speedLimitBar"></div></div>
+        <strong id="speedLimitText">0%</strong>
+      </div>
+      <div class="bar-row">
+        <span>Phone data age</span>
+        <div class="bar-track"><div class="bar-fill" id="ageBar"></div></div>
+        <strong id="ageText">-- s</strong>
+      </div>
+    </section>
+
+    <section class="panel grid">
+      <div class="metric">
+        <div class="label">GPS Link</div>
+        <div class="metric-value" id="matched">No</div>
+        <div class="metric-sub">Rider position connected to map</div>
+      </div>
+      <div class="metric">
+        <div class="label">Route Position</div>
+        <div class="metric-value" id="routeStatus">--</div>
+        <div class="metric-sub">Map position status</div>
+      </div>
+      <div class="metric">
+        <div class="label">Lane Status</div>
+        <div class="metric-value" id="laneStatus">--</div>
+        <div class="metric-sub">Rider lane connection</div>
+      </div>
+      <div class="metric">
+        <div class="label">Heading</div>
+        <div class="metric-value" id="heading">--</div>
+        <div class="metric-sub">SUMO angle</div>
+      </div>
+      <div class="metric">
+        <div class="label">Traffic Count</div>
+        <div class="metric-value" id="trafficCount">--</div>
+        <div class="metric-sub">Vehicles on current edge</div>
+      </div>
+      <div class="metric">
+        <div class="label">Leader Gap</div>
+        <div class="metric-value" id="leaderGap">--</div>
+        <div class="metric-sub">Nearest vehicle ahead</div>
+      </div>
+      <div class="metric">
+        <div class="label">Phone GPS</div>
+        <div class="metric-value" id="phoneGps">--</div>
+        <div class="metric-sub">Latest phone lat/lon</div>
+      </div>
+      <div class="metric">
+        <div class="label">Updated</div>
+        <div class="metric-value" id="updatedAt">--</div>
+        <div class="metric-sub">Flask receive time</div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const el = (id) => document.getElementById(id);
+
+    function fmt(value, digits = 1, fallback = "--") {
+      const n = Number(value);
+      return Number.isFinite(n) ? n.toFixed(digits) : fallback;
+    }
+
+    function setLevel(level, message) {
+      const safeLevel = ["ok", "warn", "danger"].includes(level) ? level : "";
+      el("levelPanel").className = "level " + safeLevel;
+      el("levelValue").textContent = level ? level.toUpperCase() : "WAIT";
+      el("message").textContent = message || "Waiting for SUMO feedback";
+    }
+
+    function setConnection(text, level = "") {
+      el("connectionDot").className = "dot " + level;
+      el("connectionText").textContent = text;
+    }
+
+    function setBar(id, textId, percent, text, color) {
+      const bounded = Math.max(0, Math.min(100, percent || 0));
+      el(id).style.width = bounded + "%";
+      el(id).style.background = color;
+      el(textId).textContent = text;
+    }
+
+    function updatePage(payload) {
+      const feedback = payload.feedback || {};
+      const phone = payload.phone || {};
+
+      if (!feedback.server_received_at && !feedback.feedback_level) {
+        setConnection("Flask running, waiting for SUMO", "warn");
+        setLevel("", "Waiting for live_phone_to_sumo.py to publish feedback");
+      } else {
+        const level = feedback.feedback_level || "ok";
+        const dotLevel = level === "danger" ? "danger" : level === "warn" ? "warn" : "ok";
+        setConnection("Receiving SUMO feedback", dotLevel);
+        setLevel(level, feedback.feedback_message);
+      }
+
+      const speedKmh = Number(feedback.sumo_speed_kmh || 0);
+      const allowedKmh = Number(feedback.allowed_speed_mps || 0) * 3.6;
+      const speedUse = allowedKmh > 0 ? (speedKmh / allowedKmh) * 100 : 0;
+      const age = Number(feedback.phone_data_age_s);
+
+      el("speedValue").textContent = fmt(speedKmh, 1, "0.0");
+      el("matched").textContent = feedback.matched ? "Connected" : "Not connected";
+      el("routeStatus").textContent = feedback.matched ? "On mapped route" : "No route match";
+      el("laneStatus").textContent = feedback.lane_id ? "Lane detected" : "No lane data";
+      el("heading").textContent = Number.isFinite(Number(feedback.angle_deg)) ? `${fmt(feedback.angle_deg, 1)} deg` : "--";
+      el("trafficCount").textContent = feedback.traffic_vehicle_count ?? "--";
+      el("leaderGap").textContent = Number.isFinite(Number(feedback.leader_gap_m)) ? `${fmt(feedback.leader_gap_m, 1)} m` : "Clear";
+      el("phoneGps").textContent = phone.lat && phone.lon ? `${fmt(phone.lat, 5)}, ${fmt(phone.lon, 5)}` : "--";
+      el("updatedAt").textContent = feedback.server_received_at ? new Date(feedback.server_received_at).toLocaleTimeString() : "--";
+
+      const speedColor = speedUse >= 95 ? "var(--danger)" : speedUse >= 80 ? "var(--warn)" : "var(--ok)";
+      setBar("speedLimitBar", "speedLimitText", speedUse, `${fmt(speedUse, 0, "0")}%`, speedColor);
+
+      const agePercent = Number.isFinite(age) ? (age / 5) * 100 : 0;
+      const ageColor = age >= 5 ? "var(--danger)" : age >= 2 ? "var(--warn)" : "var(--ok)";
+      setBar("ageBar", "ageText", agePercent, Number.isFinite(age) ? `${fmt(age, 1)} s` : "-- s", ageColor);
+    }
+
+    async function poll() {
+      try {
+        const response = await fetch("/feedback/latest", { cache: "no-store" });
+        if (!response.ok) throw new Error("HTTP " + response.status);
+        updatePage(await response.json());
+      } catch (error) {
+        setConnection("Cannot reach Flask /feedback/latest", "danger");
+        setLevel("danger", "Web feedback server is not reachable");
+      }
+    }
+
+    poll();
+    setInterval(poll, 1000);
+  </script>
+</body>
+</html>
