@@ -7,11 +7,7 @@ import csv
 
 # ---------- USER SETTINGS ----------
 
-# ---------- Monash Clayton ---------
-# SUMO_CFG = r"2026-03-11-17-20-46/osm.sumocfg"
-
-# ---------- Jordan's house ---------
-SUMO_CFG = r"2026-04-25-22-15-28/osm.sumocfg"
+SUMO_CFG = r"2026-03-11-17-20-46/osm.sumocfg"
 
 FLASK_LATEST_URL = "http://localhost:5000/latest"
 
@@ -19,7 +15,8 @@ VEHICLE_ID_KEEP0 = "ebike_keep0"
 VEHICLE_ID_KEEP1 = "ebike_keep1"
 VEHICLE_TYPE_ID = "bike_live"
 
-ROUTE_ID = "block_route"
+# ROUTE_ID = "block_route"
+ROUTE_ID = "full_campus_v2"
 
 POLL_INTERVAL = 1.0
 STALE_DATA_SECONDS = 5.0

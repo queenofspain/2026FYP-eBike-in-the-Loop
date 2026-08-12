@@ -6,8 +6,9 @@
 <sumoConfiguration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/sumoConfiguration.xsd">
 
     <input>
-        <net-file value="osm.net.xml.gz"/>
-        <route-files value="osm_pt.rou.xml,osm.bicycle.trips.xml,osm.bus.trips.xml,osm.passenger.trips.xml,osm.pedestrian.rou.xml,around_n1_route.rou.xml"/>
+        <!-- <net-file value="osm.net.xml.gz"/> -->
+        <net-file value="editedosm3.net.xml.gz"/>
+        <route-files value="full_campus_v2.rou.xml, test_route_1.rou.xml"/>
         <additional-files value="osm.poly.xml.gz,osm_stops.add.xml,output.add.xml"/>
     </input>
 

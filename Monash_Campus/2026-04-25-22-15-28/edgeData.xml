@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- generated on 2026-08-08T19:57:38.394994+10:00 by Eclipse SUMO GUI 1.26.0
+<!-- generated on 2026-04-27T14:37:13.342501+10:00 by Eclipse SUMO GUI 1.26.0
 <sumoConfiguration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/sumoConfiguration.xsd">
 
     <input>
-        <net-file value="2026-04-25-22-15-28/osm.net.xml.gz"/>
-        <route-files value="2026-04-25-22-15-28/osm.passenger.trips.xml"/>
-        <additional-files value="2026-04-25-22-15-28/osm.poly.xml.gz,2026-04-25-22-15-28/output.add.xml"/>
+        <net-file value="C:\Uni\Final Year Project\Code\Edited Code\Monash_Campus\2026-04-25-22-15-28\osm.net.xml.gz"/>
+        <route-files value="C:\Uni\Final Year Project\Code\Edited Code\Monash_Campus\2026-04-25-22-15-28\osm.passenger.trips.xml"/>
+        <additional-files value="C:\Uni\Final Year Project\Code\Edited Code\Monash_Campus\2026-04-25-22-15-28\osm.poly.xml.gz,C:\Uni\Final Year Project\Code\Edited Code\Monash_Campus\2026-04-25-22-15-28\output.add.xml"/>
     </input>
 
     <output>
-        <tripinfo-output value="2026-04-25-22-15-28/tripinfos.xml"/>
-        <statistic-output value="2026-04-25-22-15-28/stats.xml"/>
+        <tripinfo-output value="C:\Uni\Final Year Project\Code\Edited Code\Monash_Campus\2026-04-25-22-15-28\tripinfos.xml"/>
+        <statistic-output value="C:\Uni\Final Year Project\Code\Edited Code\Monash_Campus\2026-04-25-22-15-28\stats.xml"/>
     </output>
 
     <time>
@@ -36,11 +36,11 @@
     </report>
 
     <traci_server>
-        <remote-port value="52721"/>
+        <remote-port value="61989"/>
     </traci_server>
 
     <gui_only>
-        <gui-settings-file value="2026-04-25-22-15-28/osm.view.xml"/>
+        <gui-settings-file value="C:\Uni\Final Year Project\Code\Edited Code\Monash_Campus\2026-04-25-22-15-28\osm.view.xml"/>
         <start value="true"/>
     </gui_only>
 
@@ -48,8 +48,8 @@
 -->
 
 <meandata xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/meandata_file.xsd">
-    <interval begin="0.00" end="2.00" id="wizard_example">
-        <edge id="-1000770634#1" sampledSeconds="0.00" departed="0" arrived="0" entered="0" left="0" laneChangedFrom="0" laneChangedTo="0"/>
+    <interval begin="0.00" end="5.00" id="wizard_example">
+        <edge id="-1000770634#1" sampledSeconds="3.00" overlapTraveltime="100000.00" density="12.77" overlapDensity="12.77" laneDensity="12.77" occupancy="2.04" waitingTime="3.00" timeLoss="3.00" speed="0.00" speedRelative="0.00" departed="1" arrived="0" entered="0" left="0" laneChangedFrom="0" laneChangedTo="0" flow="0.00"/>
         <edge id="-1001446751#0" sampledSeconds="0.00" departed="0" arrived="0" entered="0" left="0" laneChangedFrom="0" laneChangedTo="0"/>
         <edge id="-1001446751#1" sampledSeconds="0.00" departed="0" arrived="0" entered="0" left="0" laneChangedFrom="0" laneChangedTo="0"/>
         <edge id="-1001446752#0" sampledSeconds="0.00" departed="0" arrived="0" entered="0" left="0" laneChangedFrom="0" laneChangedTo="0"/>
@@ -690,12 +690,12 @@
         <edge id="184878281#1" sampledSeconds="0.00" departed="0" arrived="0" entered="0" left="0" laneChangedFrom="0" laneChangedTo="0"/>
         <edge id="184878282#0" sampledSeconds="0.00" departed="0" arrived="0" entered="0" left="0" laneChangedFrom="0" laneChangedTo="0"/>
         <edge id="184878282#1" sampledSeconds="0.00" departed="0" arrived="0" entered="0" left="0" laneChangedFrom="0" laneChangedTo="0"/>
-        <edge id="184884854#1" sampledSeconds="0.00" departed="0" arrived="0" entered="0" left="0" laneChangedFrom="0" laneChangedTo="0"/>
+        <edge id="184884854#1" sampledSeconds="1.09" traveltime="5.50" overlapTraveltime="6.04" density="4.31" overlapDensity="4.31" laneDensity="4.31" occupancy="1.59" waitingTime="0.00" timeLoss="0.66" speed="9.19" speedRelative="0.41" departed="0" arrived="0" entered="1" left="0" laneChangedFrom="0" laneChangedTo="0" flow="142.64"/>
         <edge id="184884854#2" sampledSeconds="0.00" departed="0" arrived="0" entered="0" left="0" laneChangedFrom="0" laneChangedTo="0"/>
         <edge id="184884854#3" sampledSeconds="0.00" departed="0" arrived="0" entered="0" left="0" laneChangedFrom="0" laneChangedTo="0"/>
         <edge id="184884854#4" sampledSeconds="0.00" departed="0" arrived="0" entered="0" left="0" laneChangedFrom="0" laneChangedTo="0"/>
         <edge id="184884855" sampledSeconds="0.00" departed="0" arrived="0" entered="0" left="0" laneChangedFrom="0" laneChangedTo="0"/>
-        <edge id="184884856" sampledSeconds="1.00" traveltime="2.69" overlapTraveltime="4.68" density="48.53" overlapDensity="74.18" laneDensity="48.53" occupancy="35.98" waitingTime="0.00" timeLoss="0.89" speed="2.51" speedRelative="0.11" departed="1" arrived="0" entered="0" left="1" laneChangedFrom="0" laneChangedTo="0" flow="437.98"/>
+        <edge id="184884856" sampledSeconds="1.90" traveltime="2.69" overlapTraveltime="3.36" density="19.41" overlapDensity="56.40" laneDensity="19.41" occupancy="19.92" waitingTime="0.00" timeLoss="1.62" speed="3.49" speedRelative="0.16" departed="1" arrived="0" entered="0" left="1" laneChangedFrom="0" laneChangedTo="0" flow="175.19"/>
         <edge id="184884857" sampledSeconds="0.00" departed="0" arrived="0" entered="0" left="0" laneChangedFrom="0" laneChangedTo="0"/>
         <edge id="184884858" sampledSeconds="0.00" departed="0" arrived="0" entered="0" left="0" laneChangedFrom="0" laneChangedTo="0"/>
         <edge id="184884859#0" sampledSeconds="0.00" departed="0" arrived="0" entered="0" left="0" laneChangedFrom="0" laneChangedTo="0"/>

@@ -8,10 +8,10 @@ import csv
 # ---------- USER SETTINGS ----------
 
 # ---------- Monash Clayton ---------
-# SUMO_CFG = r"2026-03-11-17-20-46/osm.sumocfg"
+SUMO_CFG = r"2026-03-11-17-20-46/osm.sumocfg"
 
 # ---------- Jordan's house ---------
-SUMO_CFG = r"2026-04-25-22-15-28/osm.sumocfg"
+# SUMO_CFG = r"2026-04-25-22-15-28/osm.sumocfg"
 
 FLASK_LATEST_URL = "http://localhost:5000/latest"
 
