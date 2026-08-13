@@ -1,18 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- generated on 2026-08-04T13:48:10.597389+10:00 by Eclipse SUMO GUI 1.26.0
+<!-- generated on 2026-08-11T21:44:04.041622+10:00 by Eclipse SUMO GUI 1.26.0
 <sumoConfiguration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/sumoConfiguration.xsd">
 
     <input>
-        <net-file value="C:\aaUniFiles\FYP\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\osm.net.xml.gz"/>
-        <route-files value="C:\aaUniFiles\FYP\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\osm_pt.rou.xml,C:\aaUniFiles\FYP\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\osm.bicycle.trips.xml,C:\aaUniFiles\FYP\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\osm.bus.trips.xml,C:\aaUniFiles\FYP\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\osm.passenger.trips.xml,C:\aaUniFiles\FYP\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\osm.pedestrian.rou.xml"/>
-        <additional-files value="C:\aaUniFiles\FYP\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\osm.poly.xml.gz,C:\aaUniFiles\FYP\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\osm_stops.add.xml,C:\aaUniFiles\FYP\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\output.add.xml"/>
+        <net-file value="c:\aaUniFiles\FYP\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\osm.net.xml.gz"/>
+        <route-files value="c:\aaUniFiles\FYP\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\osm_pt.rou.xml,c:\aaUniFiles\FYP\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\osm.bicycle.trips.xml,c:\aaUniFiles\FYP\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\osm.bus.trips.xml,c:\aaUniFiles\FYP\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\osm.passenger.trips.xml,c:\aaUniFiles\FYP\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\osm.pedestrian.rou.xml"/>
+        <additional-files value="c:\aaUniFiles\FYP\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\osm.poly.xml.gz,c:\aaUniFiles\FYP\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\osm_stops.add.xml,c:\aaUniFiles\FYP\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\output.add.xml"/>
     </input>
 
     <output>
-        <tripinfo-output value="C:\aaUniFiles\FYP\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\tripinfos.xml"/>
-        <stop-output value="C:\aaUniFiles\FYP\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\stopinfos.xml"/>
-        <statistic-output value="C:\aaUniFiles\FYP\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\stats.xml"/>
+        <tripinfo-output value="c:\aaUniFiles\FYP\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\tripinfos.xml"/>
+        <stop-output value="c:\aaUniFiles\FYP\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\stopinfos.xml"/>
+        <statistic-output value="c:\aaUniFiles\FYP\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\stats.xml"/>
     </output>
 
     <time>
@@ -37,12 +37,13 @@
     </report>
 
     <traci_server>
-        <remote-port value="55007"/>
+        <remote-port value="62669"/>
     </traci_server>
 
     <gui_only>
-        <gui-settings-file value="C:\aaUniFiles\FYP\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\osm.view.xml"/>
+        <gui-settings-file value="c:\aaUniFiles\FYP\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\osm.view.xml"/>
         <start value="true"/>
+        <delay value="1000.0"/>
     </gui_only>
 
 </sumoConfiguration>
