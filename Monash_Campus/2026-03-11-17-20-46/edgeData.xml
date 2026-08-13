@@ -1,18 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- generated on 2026-08-07T17:13:16.945692+10:00 by Eclipse SUMO GUI 1.26.0
+<!-- generated on 2026-08-13T18:07:35.062565+10:00 by Eclipse SUMO GUI 1.26.0
 <sumoConfiguration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/sumoConfiguration.xsd">
 
     <input>
-        <net-file value="2026-03-11-17-20-46/editedosm3.net.xml.gz"/>
-        <route-files value="2026-03-11-17-20-46/full_campus_v2.rou.xml,2026-03-11-17-20-46/ test_route_1.rou.xml"/>
-        <additional-files value="2026-03-11-17-20-46/osm.poly.xml.gz,2026-03-11-17-20-46/osm_stops.add.xml,2026-03-11-17-20-46/output.add.xml"/>
+        <net-file value="C:\Uni\Final Year Project\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\editedosm3.net.xml.gz"/>
+        <route-files value="C:\Uni\Final Year Project\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\full_campus_v2.rou.xml,C:\Uni\Final Year Project\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\ test_route_1.rou.xml"/>
+        <additional-files value="C:\Uni\Final Year Project\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\osm.poly.xml.gz,C:\Uni\Final Year Project\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\osm_stops.add.xml,C:\Uni\Final Year Project\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\output.add.xml"/>
     </input>
 
     <output>
-        <tripinfo-output value="2026-03-11-17-20-46/tripinfos.xml"/>
-        <stop-output value="2026-03-11-17-20-46/stopinfos.xml"/>
-        <statistic-output value="2026-03-11-17-20-46/stats.xml"/>
+        <tripinfo-output value="C:\Uni\Final Year Project\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\tripinfos.xml"/>
+        <stop-output value="C:\Uni\Final Year Project\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\stopinfos.xml"/>
+        <statistic-output value="C:\Uni\Final Year Project\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\stats.xml"/>
     </output>
 
     <time>
@@ -37,11 +37,11 @@
     </report>
 
     <traci_server>
-        <remote-port value="62009"/>
+        <remote-port value="59619"/>
     </traci_server>
 
     <gui_only>
-        <gui-settings-file value="2026-03-11-17-20-46/osm.view.xml"/>
+        <gui-settings-file value="C:\Uni\Final Year Project\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\osm.view.xml"/>
         <start value="true"/>
     </gui_only>
 
@@ -49,7 +49,7 @@
 -->
 
 <meandata xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/meandata_file.xsd">
-    <interval begin="0.00" end="3.00" id="wizard_example">
+    <interval begin="0.00" end="41.00" id="wizard_example">
         <edge id="-1000775906#0" sampledSeconds="0.00" departed="0" arrived="0" entered="0" left="0" laneChangedFrom="0" laneChangedTo="0"/>
         <edge id="-1000775906#1" sampledSeconds="0.00" departed="0" arrived="0" entered="0" left="0" laneChangedFrom="0" laneChangedTo="0"/>
         <edge id="-1001027005" sampledSeconds="0.00" departed="0" arrived="0" entered="0" left="0" laneChangedFrom="0" laneChangedTo="0"/>
@@ -2061,7 +2061,7 @@
         <edge id="E4" sampledSeconds="0.00" departed="0" arrived="0" entered="0" left="0" laneChangedFrom="0" laneChangedTo="0"/>
         <edge id="E5" sampledSeconds="0.00" departed="0" arrived="0" entered="0" left="0" laneChangedFrom="0" laneChangedTo="0"/>
         <edge id="E6" sampledSeconds="0.00" departed="0" arrived="0" entered="0" left="0" laneChangedFrom="0" laneChangedTo="0"/>
-        <edge id="E7" sampledSeconds="0.00" departed="0" arrived="0" entered="0" left="0" laneChangedFrom="0" laneChangedTo="0"/>
+        <edge id="E7" sampledSeconds="38.00" overlapTraveltime="100000.00" density="30.05" overlapDensity="30.05" laneDensity="30.05" occupancy="4.81" waitingTime="38.00" timeLoss="38.00" speed="0.00" speedRelative="0.00" departed="1" arrived="0" entered="0" left="0" laneChangedFrom="0" laneChangedTo="0" flow="0.00"/>
         <edge id="E9" sampledSeconds="0.00" departed="0" arrived="0" entered="0" left="0" laneChangedFrom="0" laneChangedTo="0"/>
     </interval>
 </meandata>

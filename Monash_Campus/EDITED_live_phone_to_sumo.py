@@ -3,16 +3,9 @@ import sys
 import time
 import requests
 import xml.etree.ElementTree as ET
-import csv
 
 # ---------- USER SETTINGS ----------
-
-# ---------- Monash Clayton ---------
 SUMO_CFG = r"2026-03-11-17-20-46/osm.sumocfg"
-
-# ---------- Jordan's house ---------
-# SUMO_CFG = r"2026-04-25-22-15-28/osm.sumocfg"
-
 FLASK_LATEST_URL = "http://localhost:5000/latest"
 
 VEHICLE_ID = "ebike0"
@@ -22,10 +15,6 @@ POLL_INTERVAL = 1.0
 STALE_DATA_SECONDS = 5.0
 SUMO_STEP_LENGTH = 1.0
 MATCH_THRESHOLD = 100.0
-# ----------------------------------
-
-# ---------- Data Files ----------
-LOG_FILE = "position_log.csv"
 # ----------------------------------
 
 if "SUMO_HOME" not in os.environ:
@@ -114,23 +103,20 @@ def spawn_vehicle_if_missing():
     if vehicle_exists():
         return True
 
-    # route_id = f"route_{VEHICLE_ID}"
+    route_id = f"route_{VEHICLE_ID}"
 
-    # edge_ids = traci.edge.getIDList()
-    # usable_edges = [e for e in edge_ids if not e.startswith(":")]
+    edge_ids = traci.edge.getIDList()
+    usable_edges = [e for e in edge_ids if not e.startswith(":")]
 
-    # if not usable_edges:
-    #     print("[ERROR] No usable edges found in network.")
-    #     return False
+    if not usable_edges:
+        print("[ERROR] No usable edges found in network.")
+        return False
 
-    # first_edge = usable_edges[0]
+    first_edge = usable_edges[0]
 
     try:
-        route_id = "block_route"
         if route_id not in traci.route.getIDList():
-            # traci.route.add(route_id, [first_edge])
-            print(f"[ERROR] Route '{route_id}' not loaded from .rou.xml")
-            return False
+            traci.route.add(route_id, [first_edge])
 
         traci.vehicle.add(
             vehID=VEHICLE_ID,
@@ -145,7 +131,7 @@ def spawn_vehicle_if_missing():
         traci.vehicle.setSpeedMode(VEHICLE_ID, 0)
         traci.vehicle.setSpeed(VEHICLE_ID, 0.0)
 
-        print(f"[INFO] Spawned {VEHICLE_ID} on route {route_id}")
+        print(f"[INFO] Spawned {VEHICLE_ID} on edge {first_edge}")
         return True
 
     except traci.TraCIException as e:
@@ -173,7 +159,7 @@ def parse_course_deg(course_deg_raw):
         return traci.constants.INVALID_DOUBLE_VALUE
 
 
-def move_vehicle_to_phone_position(lat: float, lon: float, speed_mps: float | None, course_deg_raw, log_writer):
+def move_vehicle_to_phone_position(lat: float, lon: float, speed_mps: float | None, course_deg_raw):
     """
     Convert GPS to SUMO coordinates and move the controlled bike.
     Respawns vehicle if it disappeared.
@@ -211,25 +197,6 @@ def move_vehicle_to_phone_position(lat: float, lon: float, speed_mps: float | No
         traci.vehicle.setSpeed(VEHICLE_ID, max(0.0, float(speed_mps or 0.0)))
     except traci.TraCIException:
         pass
-
-    # --- Get SUMO internal position ---
-    try:
-        sumo_x, sumo_y = traci.vehicle.getPosition(VEHICLE_ID)
-    except traci.TraCIException:
-        return
-
-    # Log positional data
-    sim_time = traci.simulation.getTime()
-
-    log_writer.writerow([
-        sim_time,
-        lat,
-        lon,
-        x,          # converted GPS coordinate
-        y,
-        sumo_x,     # SUMO internal position
-        sumo_y
-    ])
 
     # Read back SUMO's current state
     try:
@@ -288,18 +255,6 @@ def main():
 
     ensure_vehicle_type()
 
-    log_file = open(LOG_FILE, "w", newline="")
-    log_writer = csv.writer(log_file)
-    log_writer.writerow([
-        "sim_time",
-        "phone_lat",
-        "phone_lon",
-        "gps_x",
-        "gps_y",
-        "sumo_x",
-        "sumo_y"
-])
-
     last_seen_timestamp = None
     last_poll_time = 0.0
 
@@ -334,7 +289,7 @@ def main():
 
                         course_deg = data.get("course_deg")
 
-                        move_vehicle_to_phone_position(lat, lon, speed_mps, course_deg, log_writer)
+                        move_vehicle_to_phone_position(lat, lon, speed_mps, course_deg)
 
             elapsed = time.time() - step_start
             time.sleep(max(0.0, SUMO_STEP_LENGTH - elapsed))
@@ -343,7 +298,6 @@ def main():
         print("\n[INFO] Stopped by user.")
     finally:
         try:
-            log_file.close()
             traci.close()
         except Exception:
             pass
