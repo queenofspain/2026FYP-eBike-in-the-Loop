@@ -1,21 +1,50 @@
+"""
+Post-processing GPS-to-road map matcher for SUMO.
+
+Instead of pulling live GPS data from a phone/Flask server and driving a
+vehicle in real time (as the original live-tracking script did), this script
+takes a CSV of already-recorded GPS points (sim_time, lat, lon) and runs each
+point through SUMO's native map-matching routine
+(traci.simulation.convertRoad -- the same algorithm used internally by
+moveToXY / the live script) to snap it onto the road network.
+
+For every input point it writes out:
+  - the original sim_time, lat, lon
+  - whether a match was found
+  - the matched edge ID, lane index, and position-along-lane (these are what
+    you need for Newson-Krumm style error metrics)
+  - the matched point's coordinates, both in SUMO x/y and back-projected
+    lat/lon (i.e. the point on the road nearest the raw GPS fix)
+  - the straight-line distance between the raw GPS point and the matched
+    point ("matching error" in meters), which is often useful context
+
+No real-time stepping, vehicle spawning, or speed/heading control is needed
+here since we're only doing geometric map matching on a static network.
+"""
+
+import argparse
+import csv
 import os
 import sys
-import time
-import requests
-import xml.etree.ElementTree as ET
+import math
 
-# ---------- USER SETTINGS ----------
-SUMO_CFG = r"2026-03-11-17-20-46/osm.sumocfg"
-FLASK_LATEST_URL = "http://localhost:5000/latest"
+# ---------- DEFAULT SETTINGS (overridable via CLI args) ----------
+# Defaults are resolved relative to this script's own location, not the
+# current working directory -- so the script works the same whether you run
+# it from this folder, a parent folder, or via an IDE "Run" button.
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
-VEHICLE_ID = "ebike0"
-VEHICLE_TYPE_ID = "bike_live"
+DEFAULT_SUMO_CFG = os.path.join(SCRIPT_DIR, "2026-03-11-17-20-46", "osm.sumocfg")
+DEFAULT_INPUT_CSV = os.path.join(SCRIPT_DIR, "test_old_data.csv")
+DEFAULT_OUTPUT_CSV = os.path.join(SCRIPT_DIR, "matched_output.csv")
 
-POLL_INTERVAL = 1.0
-STALE_DATA_SECONDS = 5.0
-SUMO_STEP_LENGTH = 1.0
+DEFAULT_TIME_COL = "sim_time"
+DEFAULT_LAT_COL = "phone_lat"
+DEFAULT_LON_COL = "phone_lon"
+
+# Same matching radius the live script used for moveToXY / convertRoad
 MATCH_THRESHOLD = 100.0
-# ----------------------------------
+# -------------------------------------------------------------------
 
 if "SUMO_HOME" not in os.environ:
     raise EnvironmentError("SUMO_HOME is not set. Set it before running this script.")
@@ -25,10 +54,13 @@ TOOLS = os.path.join(SUMO_HOME, "tools")
 if TOOLS not in sys.path:
     sys.path.append(TOOLS)
 
-import traci
+import traci  # noqa: E402
+import sumolib  # noqa: E402
 
 
 def parse_sumocfg_for_netfile(sumocfg_path: str) -> str:
+    import xml.etree.ElementTree as ET
+
     tree = ET.parse(sumocfg_path)
     root = tree.getroot()
 
@@ -48,194 +80,148 @@ def parse_sumocfg_for_netfile(sumocfg_path: str) -> str:
     return os.path.abspath(os.path.join(base_dir, net_value))
 
 
-def get_latest_phone_data(url: str):
-    try:
-        r = requests.get(url, timeout=2)
-        r.raise_for_status()
-        data = r.json()
-        return data if isinstance(data, dict) else None
-    except Exception as e:
-        print(f"[WARN] Could not get latest data from Flask: {e}")
-        return None
+def load_gps_rows(csv_path: str, time_col: str, lat_col: str, lon_col: str):
+    """Read a generic GPS CSV and return a list of dicts with the raw row
+    plus parsed time/lat/lon. Extra columns in the CSV are preserved and
+    passed through to the output file untouched."""
+    rows = []
+    with open(csv_path, "r", newline="") as f:
+        reader = csv.DictReader(f)
+        if reader.fieldnames is None:
+            raise ValueError(f"Could not read header row from {csv_path}")
 
+        missing = [c for c in (time_col, lat_col, lon_col) if c not in reader.fieldnames]
+        if missing:
+            raise ValueError(
+                f"Input CSV is missing expected column(s) {missing}. "
+                f"Found columns: {reader.fieldnames}. "
+                f"Use --time-col/--lat-col/--lon-col to point at the right columns."
+            )
 
-def phone_data_is_valid(data) -> bool:
-    return bool(data) and data.get("lat") is not None and data.get("lon") is not None
-
-
-def phone_data_is_fresh(data, stale_seconds: float) -> bool:
-    received = data.get("server_received_at")
-    if not received:
-        return False
-
-    try:
-        from datetime import datetime
-        t = received.replace("Z", "+00:00")
-        dt = datetime.fromisoformat(t)
-        now = datetime.now(dt.tzinfo) if dt.tzinfo else datetime.now()
-        return (now - dt).total_seconds() <= stale_seconds
-    except Exception:
-        return False
-
-
-def ensure_vehicle_type():
-    try:
-        existing = set(traci.vehicletype.getIDList())
-        if VEHICLE_TYPE_ID not in existing:
+        for raw_row in reader:
             try:
-                traci.vehicletype.copy("DEFAULT_BIKETYPE", VEHICLE_TYPE_ID)
-                traci.vehicletype.setMaxSpeed(VEHICLE_TYPE_ID, 12.0)
-            except traci.TraCIException:
-                traci.vehicletype.copy("DEFAULT_VEHTYPE", VEHICLE_TYPE_ID)
-                traci.vehicletype.setVehicleClass(VEHICLE_TYPE_ID, "bicycle")
+                sim_time = raw_row[time_col]
+                lat = float(raw_row[lat_col])
+                lon = float(raw_row[lon_col])
+            except (TypeError, ValueError):
+                print(f"[WARN] Skipping unparsable row: {raw_row}")
+                continue
+
+            rows.append({"raw": raw_row, "sim_time": sim_time, "lat": lat, "lon": lon})
+
+    return rows
+
+
+def match_point(net, lon: float, lat: float, match_threshold: float):
+    """
+    Run one GPS point through SUMO's native map-matching (convertRoad),
+    then compute the actual snapped point on the matched lane using the
+    static network geometry (sumolib), and project that back to lat/lon.
+
+    Returns a dict with match results. matched=False if no edge was found
+    within match_threshold.
+    """
+    result = {
+        "matched": False,
+        "edge_id": "",
+        "lane_index": "",
+        "lane_pos": "",
+        "is_internal_edge": False,
+        "raw_x": "",
+        "raw_y": "",
+        "matched_x": "",
+        "matched_y": "",
+        "matched_lat": "",
+        "matched_lon": "",
+        "match_error_m": "",
+        "unmatched_reason": "",
+    }
+
+    try:
+        raw_x, raw_y = traci.simulation.convertGeo(lon, lat, fromGeo=True)
+    except traci.TraCIException as e:
+        print(f"[WARN] convertGeo failed for ({lat}, {lon}): {e}")
+        result["unmatched_reason"] = "convertGeo_failed"
+        return result
+
+    result["raw_x"] = raw_x
+    result["raw_y"] = raw_y
+
+    try:
+        edge_id, lane_pos, lane_index = traci.simulation.convertRoad(
+            lon, lat, isGeo=True
+        )
+    except traci.TraCIException as e:
+        print(f"[WARN] convertRoad failed for ({lat}, {lon}): {e}")
+        result["unmatched_reason"] = "convertRoad_failed"
+        return result
+
+    if not edge_id:
+        # No edge found within SUMO's internal search radius at all
+        result["unmatched_reason"] = "no_edge_found"
+        return result
+
+    # NOTE: edges starting with ':' are internal junction/connector edges
+    # (SUMO's auto-generated intersection geometry). These are still valid
+    # matches -- a GPS fix taken while turning through an intersection will
+    # legitimately snap here. We keep them (flagged via is_internal_edge)
+    # rather than discarding them, since dropping them creates artificial
+    # gaps right at every turn/crossing.
+    result["is_internal_edge"] = edge_id.startswith(":")
+
+    try:
+        lane = net.getLane(f"{edge_id}_{lane_index}")
+        shape = lane.getShape()
+        matched_x, matched_y = sumolib.geomhelper.positionAtShapeOffset(shape, lane_pos)
     except Exception as e:
-        print(f"[WARN] Could not ensure vehicle type: {e}")
+        print(f"[WARN] Could not compute snapped geometry for edge {edge_id}: {e}")
+        # We still have a matched edge even if we can't get exact XY
+        result["matched"] = True
+        result["edge_id"] = edge_id
+        result["lane_index"] = lane_index
+        result["lane_pos"] = lane_pos
+        result["unmatched_reason"] = "geometry_lookup_failed"
+        return result
 
+    matched_lon, matched_lat = net.convertXY2LonLat(matched_x, matched_y)
 
-def vehicle_exists() -> bool:
-    try:
-        return VEHICLE_ID in traci.vehicle.getIDList()
-    except Exception:
-        return False
+    match_error_m = math.hypot(matched_x - raw_x, matched_y - raw_y)
 
-
-def spawn_vehicle_if_missing():
-    if vehicle_exists():
-        return True
-
-    route_id = f"route_{VEHICLE_ID}"
-
-    edge_ids = traci.edge.getIDList()
-    usable_edges = [e for e in edge_ids if not e.startswith(":")]
-
-    if not usable_edges:
-        print("[ERROR] No usable edges found in network.")
-        return False
-
-    first_edge = usable_edges[0]
-
-    try:
-        if route_id not in traci.route.getIDList():
-            traci.route.add(route_id, [first_edge])
-
-        traci.vehicle.add(
-            vehID=VEHICLE_ID,
-            routeID=route_id,
-            typeID=VEHICLE_TYPE_ID,
-            depart="now",
-            departLane="best",
-            departPos="base",
-            departSpeed="0"
-        )
-
-        traci.vehicle.setSpeedMode(VEHICLE_ID, 0)
-        traci.vehicle.setSpeed(VEHICLE_ID, 0.0)
-
-        print(f"[INFO] Spawned {VEHICLE_ID} on edge {first_edge}")
-        return True
-
-    except traci.TraCIException as e:
-        print(f"[WARN] Could not spawn {VEHICLE_ID}: {e}")
-        return False
-
-
-def parse_course_deg(course_deg_raw):
-    """
-    Return a valid angle in degrees, or INVALID_DOUBLE_VALUE if unusable.
-    """
-    try:
-        if course_deg_raw is None:
-            return traci.constants.INVALID_DOUBLE_VALUE
-
-        course_deg = float(course_deg_raw)
-
-        if course_deg < 0:
-            return traci.constants.INVALID_DOUBLE_VALUE
-
-        # Normalize to 0..360
-        course_deg = course_deg % 360.0
-        return course_deg
-    except Exception:
-        return traci.constants.INVALID_DOUBLE_VALUE
-
-
-def move_vehicle_to_phone_position(lat: float, lon: float, speed_mps: float | None, course_deg_raw):
-    """
-    Convert GPS to SUMO coordinates and move the controlled bike.
-    Respawns vehicle if it disappeared.
-    Uses phone course as the vehicle angle when available.
-    Prints both phone and SUMO speed/course.
-    """
-    if not spawn_vehicle_if_missing():
-        return
-
-    try:
-        x, y = traci.simulation.convertGeo(lon, lat, fromGeo=True)
-        edge_id, pos, lane_index = traci.simulation.convertRoad(lon, lat, isGeo=True)
-    except traci.TraCIException as e:
-        print(f"[WARN] Geo conversion failed: {e}")
-        return
-
-    angle_to_use = parse_course_deg(course_deg_raw)
-
-    try:
-        traci.vehicle.moveToXY(
-            vehID=VEHICLE_ID,
-            edgeID=edge_id,
-            laneIndex=lane_index,
-            x=x,
-            y=y,
-            angle=angle_to_use,
-            keepRoute=0,
-            matchThreshold=MATCH_THRESHOLD
-        )
-    except traci.TraCIException as e:
-        print(f"[WARN] moveToXY failed: {e}")
-        return
-
-    try:
-        traci.vehicle.setSpeed(VEHICLE_ID, max(0.0, float(speed_mps or 0.0)))
-    except traci.TraCIException:
-        pass
-
-    # Read back SUMO's current state
-    try:
-        sumo_speed_mps = traci.vehicle.getSpeed(VEHICLE_ID)
-    except traci.TraCIException:
-        sumo_speed_mps = None
-
-    try:
-        sumo_angle_deg = traci.vehicle.getAngle(VEHICLE_ID)
-    except traci.TraCIException:
-        sumo_angle_deg = None
-
-    phone_speed_mps = float(speed_mps or 0.0)
-    phone_speed_kmh = phone_speed_mps * 3.6
-
-    try:
-        phone_course_deg = None if course_deg_raw is None else float(course_deg_raw)
-    except Exception:
-        phone_course_deg = None
-
-    if sumo_speed_mps is not None:
-        sumo_speed_kmh = sumo_speed_mps * 3.6
-        sumo_speed_str = f"{sumo_speed_mps:.2f} m/s ({sumo_speed_kmh:.2f} km/h)"
-    else:
-        sumo_speed_str = "N/A"
-
-    sumo_angle_str = f"{sumo_angle_deg:.1f} deg" if sumo_angle_deg is not None else "N/A"
-    phone_course_str = f"{phone_course_deg:.1f} deg" if phone_course_deg is not None else "N/A"
-
-    print(
-        f"[OK] {VEHICLE_ID} -> edge={edge_id}, lane={lane_index}, xy=({x:.1f}, {y:.1f}) | "
-        f"PHONE speed={phone_speed_mps:.2f} m/s ({phone_speed_kmh:.2f} km/h), "
-        f"PHONE course={phone_course_str} | "
-        f"SUMO speed={sumo_speed_str}, SUMO angle={sumo_angle_str}"
+    result.update(
+        {
+            "matched": True,
+            "edge_id": edge_id,
+            "lane_index": lane_index,
+            "lane_pos": lane_pos,
+            "matched_x": matched_x,
+            "matched_y": matched_y,
+            "matched_lat": matched_lat,
+            "matched_lon": matched_lon,
+            "match_error_m": match_error_m,
+        }
     )
+    return result
 
 
 def main():
-    sumocfg_abs = os.path.abspath(SUMO_CFG)
+    parser = argparse.ArgumentParser(
+        description="Map-match a CSV of recorded GPS points onto a SUMO network."
+    )
+    parser.add_argument("--sumocfg", default=DEFAULT_SUMO_CFG, help="Path to .sumocfg file")
+    parser.add_argument("--input", default=DEFAULT_INPUT_CSV, help="Input GPS CSV path")
+    parser.add_argument("--output", default=DEFAULT_OUTPUT_CSV, help="Output CSV path")
+    parser.add_argument("--time-col", default=DEFAULT_TIME_COL, help="Name of the time column")
+    parser.add_argument("--lat-col", default=DEFAULT_LAT_COL, help="Name of the latitude column")
+    parser.add_argument("--lon-col", default=DEFAULT_LON_COL, help="Name of the longitude column")
+    parser.add_argument(
+        "--match-threshold",
+        type=float,
+        default=MATCH_THRESHOLD,
+        help="Max search radius (m) for map matching",
+    )
+    args = parser.parse_args()
+
+    sumocfg_abs = os.path.abspath(args.sumocfg)
     if not os.path.exists(sumocfg_abs):
         raise FileNotFoundError(f"SUMO config not found: {sumocfg_abs}")
 
@@ -243,64 +229,87 @@ def main():
 
     print(f"[INFO] SUMO config: {sumocfg_abs}")
     print(f"[INFO] Net file:    {net_file}")
-    print("[INFO] Starting SUMO...")
+    print(f"[INFO] Input CSV:   {args.input}")
+    print(f"[INFO] Output CSV:  {args.output}")
 
-    traci.start([
-        "sumo-gui",
-        "-c", sumocfg_abs,
-        "--step-length", str(SUMO_STEP_LENGTH),
-        "--start",
-        "--end", "1000000"
-    ])
+    print("[INFO] Loading network geometry with sumolib...")
+    # withInternal=True is required so junction-internal edges (the short
+    # connector edges inside intersections, IDs starting with ':') have
+    # usable lane geometry -- otherwise every match that lands on one during
+    # a turn silently fails to produce coordinates.
+    net = sumolib.net.readNet(net_file, withInternal=True)
 
-    ensure_vehicle_type()
+    print("[INFO] Loading GPS points...")
+    gps_rows = load_gps_rows(args.input, args.time_col, args.lat_col, args.lon_col)
+    print(f"[INFO] Loaded {len(gps_rows)} GPS points.")
 
-    last_seen_timestamp = None
-    last_poll_time = 0.0
+    print("[INFO] Starting headless SUMO for native map matching...")
+    traci.start(["sumo", "-c", sumocfg_abs, "--start", "--no-step-log", "true"])
+
+    output_rows = []
+    matched_count = 0
 
     try:
-        while True:
-            step_start = time.time()
-            traci.simulationStep()
+        for i, row in enumerate(gps_rows):
+            match = match_point(net, row["lon"], row["lat"], args.match_threshold)
+            if match["matched"]:
+                matched_count += 1
 
-            now = time.time()
-            if now - last_poll_time >= POLL_INTERVAL:
-                last_poll_time = now
+            out_row = dict(row["raw"])  # preserve any extra original columns
+            out_row.update(
+                {
+                    args.time_col: row["sim_time"],
+                    args.lat_col: row["lat"],
+                    args.lon_col: row["lon"],
+                    "matched": match["matched"],
+                    "edge_id": match["edge_id"],
+                    "lane_index": match["lane_index"],
+                    "lane_pos": match["lane_pos"],
+                    "is_internal_edge": match["is_internal_edge"],
+                    "raw_x": match["raw_x"],
+                    "raw_y": match["raw_y"],
+                    "matched_x": match["matched_x"],
+                    "matched_y": match["matched_y"],
+                    "matched_lat": match["matched_lat"],
+                    "matched_lon": match["matched_lon"],
+                    "match_error_m": match["match_error_m"],
+                    "unmatched_reason": match["unmatched_reason"],
+                }
+            )
+            output_rows.append(out_row)
 
-                data = get_latest_phone_data(FLASK_LATEST_URL)
-
-                if not phone_data_is_valid(data):
-                    print("[WARN] No valid phone data yet")
-                elif not phone_data_is_fresh(data, STALE_DATA_SECONDS):
-                    print("[WARN] Latest phone data is stale; ignoring")
-                else:
-                    phone_timestamp = data.get("phone_timestamp")
-
-                    if phone_timestamp != last_seen_timestamp:
-                        last_seen_timestamp = phone_timestamp
-
-                        lat = float(data["lat"])
-                        lon = float(data["lon"])
-
-                        try:
-                            speed_mps = float(data.get("speed_mps", 0.0) or 0.0)
-                        except Exception:
-                            speed_mps = 0.0
-
-                        course_deg = data.get("course_deg")
-
-                        move_vehicle_to_phone_position(lat, lon, speed_mps, course_deg)
-
-            elapsed = time.time() - step_start
-            time.sleep(max(0.0, SUMO_STEP_LENGTH - elapsed))
-
-    except KeyboardInterrupt:
-        print("\n[INFO] Stopped by user.")
+            if (i + 1) % 50 == 0 or (i + 1) == len(gps_rows):
+                print(f"[INFO] Processed {i + 1}/{len(gps_rows)} points "
+                      f"({matched_count} matched so far)")
     finally:
-        try:
-            traci.close()
-        except Exception:
-            pass
+        traci.close()
+
+    if not output_rows:
+        print("[WARN] No output rows produced; nothing written.")
+        return
+
+    fieldnames = list(output_rows[0].keys())
+    with open(args.output, "w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(output_rows)
+
+    internal_count = sum(1 for r in output_rows if r["is_internal_edge"])
+    reason_counts = {}
+    for r in output_rows:
+        if not r["matched"]:
+            reason = r["unmatched_reason"] or "unknown"
+            reason_counts[reason] = reason_counts.get(reason, 0) + 1
+
+    print(
+        f"[DONE] Wrote {len(output_rows)} rows to {args.output} "
+        f"({matched_count}/{len(output_rows)} points matched to an edge, "
+        f"{internal_count} of which landed on a junction/internal edge)."
+    )
+    if reason_counts:
+        print("[INFO] Breakdown of unmatched points:")
+        for reason, count in sorted(reason_counts.items(), key=lambda kv: -kv[1]):
+            print(f"         {reason}: {count}")
 
 
 if __name__ == "__main__":
