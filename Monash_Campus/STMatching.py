@@ -550,7 +550,7 @@ class STMatcher:
         # because this pass was comments-only; fix before any evaluation run
         # by returning (0.0, 0.0) instead.
         if net_dist is None:
-            return 0.0            # unreachable -> impossible transition
+            return 0.0, None            # unreachable -> impossible transition
         if net_dist <= 0.0:
             # Both fixes snapped to the same on-edge point (stationary rider).
             # No detour is possible, so the transmission term is perfect.
