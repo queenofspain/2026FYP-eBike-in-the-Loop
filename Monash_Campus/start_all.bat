@@ -28,7 +28,19 @@ echo [launcher] Waiting for tunnel to come up...
 timeout /t 4 /nobreak >nul
 
 echo.
-echo [launcher] All three processes launched in separate windows.
-echo [launcher] Phone URL: https://%NGROK_DOMAIN%/
+echo ============================================================
+echo  Tunnel should now be active.
+echo  Phone URL: https://%NGROK_DOMAIN%/
+echo  Please open the website on your device and press START
+echo  off
+echo  Please press enter...
+echo ============================================================
 echo.
+pause
+
+echo [launcher] Starting SUMO bridge script...
+start "SUMO Bridge" cmd /k "cd /d %PROJECT_DIR% && python %SUMO_SCRIPT%"
+
+echo.
+echo [launcher] All processes launched.
 pause
