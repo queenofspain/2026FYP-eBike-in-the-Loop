@@ -335,7 +335,7 @@ def move_vehicle_to_phone_position(lat: float, lon: float, speed_mps: float | No
             x=move_x,
             y=move_y,
             angle=angle_to_use,
-            keepRoute=2,
+            keepRoute=6,
             matchThreshold=MATCH_THRESHOLD
         )
     except traci.TraCIException as e:
