@@ -1,3 +1,17 @@
+"""
+live_phone_to_sumo.py
+======================================================================
+Bridges live phone GPS to the SUMO simulation over TraCI: polls the
+Flask server for the newest GPS fix, converts it to SUMO network (x, y)
+coordinates, runs it through the fuzzy logic map-matcher, and moves the
+virtual eBike to the matched position via traci.vehicle.moveToXY().
+
+If no candidate edge is found within FUZZY_SEARCH_RADIUS, falls back to
+SUMO's own native geometric snapping (convertRoad + keepRoute=0) for
+that one fix, so the bike keeps moving rather than stalling.
+----------------------------------------------------------------------
+"""
+
 import os
 import sys
 import time
@@ -15,6 +29,17 @@ POLL_INTERVAL = 1.0
 STALE_DATA_SECONDS = 5.0
 SUMO_STEP_LENGTH = 1.0
 MATCH_THRESHOLD = 100.0
+
+# ---- Fuzzy logic matching parameters ----
+# These are the knobs to sweep when tuning against the ground-truth route.
+FUZZY_SEARCH_RADIUS = 50.0        # m; hard cutoff for candidate edge lookup
+FUZZY_DIST_HALF_WIDTH = 2.5       # m; distance at which short/long membership = 0.5
+FUZZY_ANGLE_SMALL_BREAK = 25.0    # deg
+FUZZY_ANGLE_LARGE_BREAK = 65.0    # deg
+FUZZY_JUNCTION_THRESHOLD = 5.0    # m; clearance to end-node that triggers junction mode
+FUZZY_MIN_SPEED_FOR_SWITCH = 0.5  # m/s; below this the matcher never changes edge
+FUZZY_CONFIRM_COUNT = 2           # consecutive fixes a new edge must win before switching
+FUZZY_VCLASS = None               # e.g. "bicycle" to reject disallowed edges
 # ----------------------------------
 
 if "SUMO_HOME" not in os.environ:
@@ -26,6 +51,11 @@ if TOOLS not in sys.path:
     sys.path.append(TOOLS)
 
 import traci
+# The fuzzy logic map-matcher lives in FuzzyLogic.py alongside this file.
+from FuzzyLogic import FuzzyMatcher
+
+# Built once in main(), read inside move_vehicle_to_phone_position().
+MATCHER = None
 
 
 def parse_sumocfg_for_netfile(sumocfg_path: str) -> str:
@@ -159,34 +189,84 @@ def parse_course_deg(course_deg_raw):
         return traci.constants.INVALID_DOUBLE_VALUE
 
 
+def _fmt(value, spec=".3f"):
+    """Format a float for the log line, or '--' if it's None."""
+    return format(value, spec) if value is not None else "--"
+
+
 def move_vehicle_to_phone_position(lat: float, lon: float, speed_mps: float | None, course_deg_raw):
     """
-    Convert GPS to SUMO coordinates and move the controlled bike.
-    Respawns vehicle if it disappeared.
-    Uses phone course as the vehicle angle when available.
-    Prints both phone and SUMO speed/course.
+    Convert one GPS fix to SUMO coordinates, run the fuzzy logic matcher,
+    and move the controlled bike there. Respawns the vehicle first if it
+    disappeared.
+
+    Falls back to SUMO's own geometric snapping when the matcher finds no
+    candidate edge within FUZZY_SEARCH_RADIUS, so the bike keeps moving
+    instead of stalling on a bad fix.
     """
     if not spawn_vehicle_if_missing():
         return
 
     try:
         x, y = traci.simulation.convertGeo(lon, lat, fromGeo=True)
-        edge_id, pos, lane_index = traci.simulation.convertRoad(lon, lat, isGeo=True)
     except traci.TraCIException as e:
         print(f"[WARN] Geo conversion failed: {e}")
         return
 
     angle_to_use = parse_course_deg(course_deg_raw)
 
+    # The matcher wants a plain float or None for heading, so translate
+    # SUMO's INVALID sentinel back into None before calling it.
+    course_for_match = angle_to_use
+    if course_for_match == traci.constants.INVALID_DOUBLE_VALUE:
+        course_for_match = None
+
+    # Run the fuzzy matcher on the converted point. Wrapped in a broad
+    # try/except so a matcher bug degrades to the fallback path below
+    # rather than killing the simulation loop.
+    match_start = time.perf_counter()
+    try:
+        result = MATCHER.match(
+            x, y,
+            course_deg=course_for_match,
+            speed_mps=speed_mps,
+        )
+    except Exception:
+        import traceback
+        print("[ERROR] Matcher raised:")
+        traceback.print_exc()
+        result = None
+    match_ms = (time.perf_counter() - match_start) * 1000.0
+
+    if result is not None:
+        # Matcher succeeded: use its chosen on-edge (x, y) and edge id.
+        # keepRoute=2 means "trust the matcher, place exactly here".
+        move_x, move_y = result["x"], result["y"]
+        edge_id = result["edge_id"]
+        lane_index = 0
+        keep_route = 2
+    else:
+        # No candidate within FUZZY_SEARCH_RADIUS: fall back to the raw
+        # converted point and let SUMO's own geometric snapping pick the
+        # edge, so the bike keeps moving rather than stalling.
+        move_x, move_y = x, y
+        try:
+            edge_id, _pos, lane_index = traci.simulation.convertRoad(lon, lat, isGeo=True)
+        except traci.TraCIException:
+            edge_id, lane_index = "", 0
+        keep_route = 0
+        print(f"[WARN] No fuzzy-logic candidate within {FUZZY_SEARCH_RADIUS:.0f} m "
+              f"of ({x:.1f}, {y:.1f}) -- falling back to native matching")
+
     try:
         traci.vehicle.moveToXY(
             vehID=VEHICLE_ID,
             edgeID=edge_id,
             laneIndex=lane_index,
-            x=x,
-            y=y,
+            x=move_x,
+            y=move_y,
             angle=angle_to_use,
-            keepRoute=0,
+            keepRoute=keep_route,
             matchThreshold=MATCH_THRESHOLD
         )
     except traci.TraCIException as e:
@@ -226,8 +306,18 @@ def move_vehicle_to_phone_position(lat: float, lon: float, speed_mps: float | No
     sumo_angle_str = f"{sumo_angle_deg:.1f} deg" if sumo_angle_deg is not None else "N/A"
     phone_course_str = f"{phone_course_deg:.1f} deg" if phone_course_deg is not None else "N/A"
 
+    # How far the matcher moved the point off the raw GPS reading.
+    correction_m = ((move_x - x) ** 2 + (move_y - y) ** 2) ** 0.5
+    comps = result.get("components", {}) if result is not None else {}
+
     print(
-        f"[OK] {VEHICLE_ID} -> edge={edge_id}, lane={lane_index}, xy=({x:.1f}, {y:.1f}) | "
+        f"[OK] {VEHICLE_ID} -> edge={edge_id}, lane={lane_index}, "
+        f"xy=({move_x:.1f}, {move_y:.1f}), raw=({x:.1f}, {y:.1f}), corr={correction_m:.2f} m | "
+        f"mode={comps.get('mode', '--')} "
+        f"score={_fmt(result.get('score') if result is not None else None, '.1f')} "
+        f"short={_fmt(comps.get('short'))} small={_fmt(comps.get('small'))} "
+        f"angle_diff={_fmt(comps.get('angle_diff'), '.1f')} | "
+        f"match={match_ms:.1f} ms | "
         f"PHONE speed={phone_speed_mps:.2f} m/s ({phone_speed_kmh:.2f} km/h), "
         f"PHONE course={phone_course_str} | "
         f"SUMO speed={sumo_speed_str}, SUMO angle={sumo_angle_str}"
@@ -235,11 +325,32 @@ def move_vehicle_to_phone_position(lat: float, lon: float, speed_mps: float | No
 
 
 def main():
+    # MATCHER is assigned here and read inside move_vehicle_to_phone_position,
+    # so it has to be declared global before first assignment.
+    global MATCHER
+
     sumocfg_abs = os.path.abspath(SUMO_CFG)
     if not os.path.exists(sumocfg_abs):
         raise FileNotFoundError(f"SUMO config not found: {sumocfg_abs}")
 
     net_file = parse_sumocfg_for_netfile(sumocfg_abs)
+
+    # Build the matcher once (it loads the whole network with sumolib, which
+    # is relatively expensive) and reuse it for every fix.
+    print("[INFO] Loading network into fuzzy logic matcher...")
+    MATCHER = FuzzyMatcher(
+        net_file,
+        search_radius=FUZZY_SEARCH_RADIUS,
+        dist_half_width=FUZZY_DIST_HALF_WIDTH,
+        angle_small_break=FUZZY_ANGLE_SMALL_BREAK,
+        angle_large_break=FUZZY_ANGLE_LARGE_BREAK,
+        junction_threshold=FUZZY_JUNCTION_THRESHOLD,
+        min_speed_for_switch=FUZZY_MIN_SPEED_FOR_SWITCH,
+        confirm_count=FUZZY_CONFIRM_COUNT,
+        vclass=FUZZY_VCLASS,
+    )
+    print(f"[INFO] Fuzzy logic matcher ready (dist_half_width={FUZZY_DIST_HALF_WIDTH}, "
+          f"junction_threshold={FUZZY_JUNCTION_THRESHOLD}).")
 
     print(f"[INFO] SUMO config: {sumocfg_abs}")
     print(f"[INFO] Net file:    {net_file}")
