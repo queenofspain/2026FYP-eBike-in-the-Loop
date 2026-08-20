@@ -249,7 +249,7 @@ def move_vehicle_to_phone_position(lat: float, lon: float, speed_mps: float | No
         move_x, move_y = result["x"], result["y"]
         edge_id = result["edge_id"]
         lane_index = 0
-        keep_route = 2
+        keep_route = 6
     else:
         # No candidate within HMM_SEARCH_RADIUS: fall back to the raw
         # converted point and let SUMO's own geometric snapping pick the
