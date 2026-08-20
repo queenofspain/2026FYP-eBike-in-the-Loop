@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- generated on 2026-08-20T10:43:15.379208+10:00 by Eclipse SUMO GUI 1.26.0
+<!-- generated on 2026-08-20T11:10:22.259143+10:00 by Eclipse SUMO GUI 1.26.0
 <sumoConfiguration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/sumoConfiguration.xsd">
 
     <input>
@@ -37,13 +37,13 @@
     </report>
 
     <traci_server>
-        <remote-port value="59049"/>
+        <remote-port value="51579"/>
     </traci_server>
 
     <gui_only>
         <gui-settings-file value="c:\aaUniFiles\FYP\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\osm.view.xml"/>
         <start value="true"/>
-        <delay value="1000.0"/>
+        <delay value="1000"/>
     </gui_only>
 
 </sumoConfiguration>

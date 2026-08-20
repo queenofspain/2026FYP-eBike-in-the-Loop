@@ -365,6 +365,7 @@ def move_vehicle_to_phone_position(lat, lon, speed_mps, course_deg_raw, fix_time
             speed_mps=speed_mps,
             course_deg=course_for_match,
         )
+        
     except Exception:
         import traceback
         print("[ERROR] Matcher raised:")
@@ -395,7 +396,7 @@ def move_vehicle_to_phone_position(lat, lon, speed_mps, course_deg_raw, fix_time
             x=move_x,
             y=move_y,
             angle=angle_to_use,
-            keepRoute=2,
+            keepRoute=6,
             matchThreshold=MATCH_THRESHOLD
         )
     except traci.TraCIException as e:
@@ -514,7 +515,7 @@ def main():
         "sumo-gui",
         "-c", sumocfg_abs,
         "--step-length", str(SUMO_STEP_LENGTH),
-        "--delay", str(SUMO_STEP_LENGTH * 1000.0),
+        "--delay", "1000",
         "--start",
         "--end", "1000000"
     ])

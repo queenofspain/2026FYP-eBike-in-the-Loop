@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- generated on 2026-08-20T10:43:15.196664+10:00 by Eclipse SUMO GUI 1.26.0
+<!-- generated on 2026-08-20T11:10:22.081657+10:00 by Eclipse SUMO GUI 1.26.0
 <sumoConfiguration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/sumoConfiguration.xsd">
 
     <input>
@@ -37,13 +37,13 @@
     </report>
 
     <traci_server>
-        <remote-port value="59049"/>
+        <remote-port value="51579"/>
     </traci_server>
 
     <gui_only>
         <gui-settings-file value="c:\aaUniFiles\FYP\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\osm.view.xml"/>
         <start value="true"/>
-        <delay value="1000.0"/>
+        <delay value="1000"/>
     </gui_only>
 
 </sumoConfiguration>
@@ -51,4 +51,3 @@
 
 <tripinfos xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/tripinfo_file.xsd">
     <tripinfo id="bike1" depart="14.00" departLane="-46129103#1_0" departPos="1.70" departSpeed="0.00" departDelay="0.93" arrival="58.00" arrivalLane="-45897672#1_1" arrivalPos="2.42" arrivalSpeed="5.11" duration="44.00" routeLength="205.34" waitingTime="0.00" waitingCount="0" stopTime="0.00" timeLoss="3.97" rerouteNo="1" devices="tripinfo_bike1 routing_bike1" vType="bike_bicycle" speedFactor="0.94" vaporized=""/>
-    <tripinfo id="veh5" depart="72.00" departLane="24801549#3_0" departPos="5.10" departSpeed="0.00" departDelay="0.36" arrival="117.00" arrivalLane="985461729#0_0" arrivalPos="4.76" arrivalSpeed="8.84" duration="45.00" routeLength="427.49" waitingTime="0.00" waitingCount="0" stopTime="0.00" timeLoss="6.50" rerouteNo="1" devices="tripinfo_veh5 routing_veh5" vType="veh_passenger" speedFactor="0.83" vaporized=""/>
