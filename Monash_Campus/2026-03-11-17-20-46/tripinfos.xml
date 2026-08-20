@@ -1,18 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- generated on 2026-08-20T11:25:49.277997+10:00 by Eclipse SUMO GUI 1.27.1
+<!-- generated on 2026-08-20T11:39:38.938372+10:00 by Eclipse SUMO GUI 1.27.1
 <sumoConfiguration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/sumoConfiguration.xsd">
 
     <input>
-        <net-file value="c:\Users\bront\OneDrive - Monash University\2026\FYP\code\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\osm.net.xml.gz"/>
-        <route-files value="c:\Users\bront\OneDrive - Monash University\2026\FYP\code\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\osm_pt.rou.xml,c:\Users\bront\OneDrive - Monash University\2026\FYP\code\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\osm.bicycle.trips.xml,c:\Users\bront\OneDrive - Monash University\2026\FYP\code\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\osm.bus.trips.xml,c:\Users\bront\OneDrive - Monash University\2026\FYP\code\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\osm.passenger.trips.xml,c:\Users\bront\OneDrive - Monash University\2026\FYP\code\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\osm.pedestrian.rou.xml"/>
-        <additional-files value="c:\Users\bront\OneDrive - Monash University\2026\FYP\code\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\osm.poly.xml.gz,c:\Users\bront\OneDrive - Monash University\2026\FYP\code\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\osm_stops.add.xml,c:\Users\bront\OneDrive - Monash University\2026\FYP\code\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\output.add.xml"/>
+        <net-file value="C:\Users\bront\OneDrive - Monash University\2026\FYP\code\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\osm.net.xml.gz"/>
+        <route-files value="C:\Users\bront\OneDrive - Monash University\2026\FYP\code\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\osm_pt.rou.xml,C:\Users\bront\OneDrive - Monash University\2026\FYP\code\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\osm.bicycle.trips.xml,C:\Users\bront\OneDrive - Monash University\2026\FYP\code\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\osm.bus.trips.xml,C:\Users\bront\OneDrive - Monash University\2026\FYP\code\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\osm.passenger.trips.xml,C:\Users\bront\OneDrive - Monash University\2026\FYP\code\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\osm.pedestrian.rou.xml"/>
+        <additional-files value="C:\Users\bront\OneDrive - Monash University\2026\FYP\code\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\osm.poly.xml.gz,C:\Users\bront\OneDrive - Monash University\2026\FYP\code\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\osm_stops.add.xml,C:\Users\bront\OneDrive - Monash University\2026\FYP\code\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\output.add.xml"/>
     </input>
 
     <output>
-        <tripinfo-output value="c:\Users\bront\OneDrive - Monash University\2026\FYP\code\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\tripinfos.xml"/>
-        <stop-output value="c:\Users\bront\OneDrive - Monash University\2026\FYP\code\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\stopinfos.xml"/>
-        <statistic-output value="c:\Users\bront\OneDrive - Monash University\2026\FYP\code\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\stats.xml"/>
+        <tripinfo-output value="C:\Users\bront\OneDrive - Monash University\2026\FYP\code\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\tripinfos.xml"/>
+        <stop-output value="C:\Users\bront\OneDrive - Monash University\2026\FYP\code\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\stopinfos.xml"/>
+        <statistic-output value="C:\Users\bront\OneDrive - Monash University\2026\FYP\code\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\stats.xml"/>
     </output>
 
     <time>
@@ -37,11 +37,11 @@
     </report>
 
     <traci_server>
-        <remote-port value="61129"/>
+        <remote-port value="54685"/>
     </traci_server>
 
     <gui_only>
-        <gui-settings-file value="c:\Users\bront\OneDrive - Monash University\2026\FYP\code\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\osm.view.xml"/>
+        <gui-settings-file value="C:\Users\bront\OneDrive - Monash University\2026\FYP\code\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-03-11-17-20-46\osm.view.xml"/>
         <start value="true"/>
     </gui_only>
 
@@ -49,4 +49,9 @@
 -->
 
 <tripinfos xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/tripinfo_file.xsd">
-</tripinfos>
+    <tripinfo id="bike1" depart="14.00" departLane="-46129103#1_0" departPos="1.70" departSpeed="3.69" departDelay="0.93" arrival="57.00" arrivalLane="-45897672#1_1" arrivalPos="2.42" arrivalSpeed="5.14" duration="43.00" routeLength="205.34" waitingTime="0.00" waitingCount="0" stopTime="0.00" timeLoss="2.69" rerouteNo="1" devices="tripinfo_bike1 routing_bike1" vType="bike_bicycle" speedFactor="0.94" vaporized=""/>
+    <tripinfo id="veh5" depart="72.00" departLane="24801549#3_0" departPos="5.10" departSpeed="11.47" departDelay="0.36" arrival="115.00" arrivalLane="985461729#0_0" arrivalPos="4.76" arrivalSpeed="8.21" duration="43.00" routeLength="427.49" waitingTime="0.00" waitingCount="0" stopTime="0.00" timeLoss="4.63" rerouteNo="1" devices="tripinfo_veh5 routing_veh5" vType="veh_passenger" speedFactor="0.83" vaporized=""/>
+    <tripinfo id="bus1" depart="41.00" departLane="4577073#4_0" departPos="12.10" departSpeed="13.89" departDelay="0.31" arrival="122.00" arrivalLane="5094893#0_0" arrivalPos="15.73" arrivalSpeed="13.48" duration="81.00" routeLength="1026.80" waitingTime="0.00" waitingCount="0" stopTime="0.00" timeLoss="5.70" rerouteNo="1" devices="tripinfo_bus1 routing_bus1" vType="bus_bus" speedFactor="1.00" vaporized=""/>
+    <tripinfo id="bike6" depart="79.00" departLane="-1037064066#1_0" departPos="1.70" departSpeed="2.78" departDelay="0.56" arrival="128.00" arrivalLane="-4577073#2_0" arrivalPos="6.90" arrivalSpeed="5.58" duration="49.00" routeLength="207.93" waitingTime="0.00" waitingCount="0" stopTime="0.00" timeLoss="4.88" rerouteNo="1" devices="tripinfo_bike6 routing_bike6" vType="bike_bicycle" speedFactor="1.09" vaporized=""/>
+    <tripinfo id="bus0" depart="0.00" departLane="-10670468#0_0" departPos="3.97" departSpeed="6.39" departDelay="0.00" arrival="129.00" arrivalLane="47528871#1_0" arrivalPos="5.67" arrivalSpeed="8.18" duration="129.00" routeLength="1027.04" waitingTime="0.00" waitingCount="0" stopTime="0.00" timeLoss="12.27" rerouteNo="1" devices="tripinfo_bus0 routing_bus0" vType="bus_bus" speedFactor="1.00" vaporized=""/>
+    <tripinfo id="veh1" depart="15.00" departLane="-73530943#0_1" departPos="5.10" departSpeed="5.56" departDelay="0.67" arrival="146.00" arrivalLane="-1209653401_0" arrivalPos="44.00" arrivalSpeed="5.47" duration="131.00" routeLength="651.19" waitingTime="0.00" waitingCount="0" stopTime="0.00" timeLoss="22.51" rerouteNo="1" devices="tripinfo_veh1 routing_veh1" vType="veh_passenger" speedFactor="1.08" vaporized=""/>
