@@ -1,22 +1,25 @@
+
 """
 Post-processing GPS-to-road map matcher for SUMO.
 
 Instead of pulling live GPS data from a phone/Flask server and driving a
 vehicle in real time (as the original live-tracking script did), this script
-takes a CSV of already-recorded GPS points (sim_time, lat, lon) and runs each
+takes a CSV of already-recorded GPS points (lat, lon) and runs each
 point through SUMO's native map-matching routine
 (traci.simulation.convertRoad -- the same algorithm used internally by
 moveToXY / the live script) to snap it onto the road network.
 
 For every input point it writes out:
-  - the original sim_time, lat, lon
+  - the original lat, lon
   - whether a match was found
   - the matched edge ID, lane index, and position-along-lane (these are what
     you need for Newson-Krumm style error metrics)
+  - whether the match landed on a junction/internal edge (is_internal_edge)
   - the matched point's coordinates, both in SUMO x/y and back-projected
     lat/lon (i.e. the point on the road nearest the raw GPS fix)
   - the straight-line distance between the raw GPS point and the matched
     point ("matching error" in meters), which is often useful context
+  - if a point didn't match, why (unmatched_reason)
 
 No real-time stepping, vehicle spawning, or speed/heading control is needed
 here since we're only doing geometric map matching on a static network.
@@ -35,12 +38,11 @@ import math
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 DEFAULT_SUMO_CFG = os.path.join(SCRIPT_DIR, "2026-03-11-17-20-46", "osm.sumocfg")
-DEFAULT_INPUT_CSV = os.path.join(SCRIPT_DIR, "test_old_data.csv")
-DEFAULT_OUTPUT_CSV = os.path.join(SCRIPT_DIR, "matched_output.csv")
+DEFAULT_INPUT_CSV = os.path.join(SCRIPT_DIR, "Data/gps_data_processed.csv")
+DEFAULT_OUTPUT_CSV = os.path.join(SCRIPT_DIR, "Data/matched_output.csv")
 
-DEFAULT_TIME_COL = "sim_time"
-DEFAULT_LAT_COL = "phone_lat"
-DEFAULT_LON_COL = "phone_lon"
+DEFAULT_LAT_COL = "lat"
+DEFAULT_LON_COL = "lon"
 
 # Same matching radius the live script used for moveToXY / convertRoad
 MATCH_THRESHOLD = 100.0
@@ -80,9 +82,9 @@ def parse_sumocfg_for_netfile(sumocfg_path: str) -> str:
     return os.path.abspath(os.path.join(base_dir, net_value))
 
 
-def load_gps_rows(csv_path: str, time_col: str, lat_col: str, lon_col: str):
+def load_gps_rows(csv_path: str, lat_col: str, lon_col: str):
     """Read a generic GPS CSV and return a list of dicts with the raw row
-    plus parsed time/lat/lon. Extra columns in the CSV are preserved and
+    plus parsed lat/lon. Extra columns in the CSV are preserved and
     passed through to the output file untouched."""
     rows = []
     with open(csv_path, "r", newline="") as f:
@@ -90,24 +92,23 @@ def load_gps_rows(csv_path: str, time_col: str, lat_col: str, lon_col: str):
         if reader.fieldnames is None:
             raise ValueError(f"Could not read header row from {csv_path}")
 
-        missing = [c for c in (time_col, lat_col, lon_col) if c not in reader.fieldnames]
+        missing = [c for c in (lat_col, lon_col) if c not in reader.fieldnames]
         if missing:
             raise ValueError(
                 f"Input CSV is missing expected column(s) {missing}. "
                 f"Found columns: {reader.fieldnames}. "
-                f"Use --time-col/--lat-col/--lon-col to point at the right columns."
+                f"Use --lat-col/--lon-col to point at the right columns."
             )
 
         for raw_row in reader:
             try:
-                sim_time = raw_row[time_col]
                 lat = float(raw_row[lat_col])
                 lon = float(raw_row[lon_col])
             except (TypeError, ValueError):
                 print(f"[WARN] Skipping unparsable row: {raw_row}")
                 continue
 
-            rows.append({"raw": raw_row, "sim_time": sim_time, "lat": lat, "lon": lon})
+            rows.append({"raw": raw_row, "lat": lat, "lon": lon})
 
     return rows
 
@@ -157,7 +158,7 @@ def match_point(net, lon: float, lat: float, match_threshold: float):
         return result
 
     if not edge_id:
-        # No edge found within SUMO's internal search radius at all
+        # No edge found at all within SUMO's internal search radius
         result["unmatched_reason"] = "no_edge_found"
         return result
 
@@ -210,7 +211,6 @@ def main():
     parser.add_argument("--sumocfg", default=DEFAULT_SUMO_CFG, help="Path to .sumocfg file")
     parser.add_argument("--input", default=DEFAULT_INPUT_CSV, help="Input GPS CSV path")
     parser.add_argument("--output", default=DEFAULT_OUTPUT_CSV, help="Output CSV path")
-    parser.add_argument("--time-col", default=DEFAULT_TIME_COL, help="Name of the time column")
     parser.add_argument("--lat-col", default=DEFAULT_LAT_COL, help="Name of the latitude column")
     parser.add_argument("--lon-col", default=DEFAULT_LON_COL, help="Name of the longitude column")
     parser.add_argument(
@@ -240,7 +240,7 @@ def main():
     net = sumolib.net.readNet(net_file, withInternal=True)
 
     print("[INFO] Loading GPS points...")
-    gps_rows = load_gps_rows(args.input, args.time_col, args.lat_col, args.lon_col)
+    gps_rows = load_gps_rows(args.input, args.lat_col, args.lon_col)
     print(f"[INFO] Loaded {len(gps_rows)} GPS points.")
 
     print("[INFO] Starting headless SUMO for native map matching...")
@@ -258,7 +258,6 @@ def main():
             out_row = dict(row["raw"])  # preserve any extra original columns
             out_row.update(
                 {
-                    args.time_col: row["sim_time"],
                     args.lat_col: row["lat"],
                     args.lon_col: row["lon"],
                     "matched": match["matched"],
@@ -288,18 +287,18 @@ def main():
         print("[WARN] No output rows produced; nothing written.")
         return
 
-    fieldnames = list(output_rows[0].keys())
-    with open(args.output, "w", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
-        writer.writeheader()
-        writer.writerows(output_rows)
-
     internal_count = sum(1 for r in output_rows if r["is_internal_edge"])
     reason_counts = {}
     for r in output_rows:
         if not r["matched"]:
             reason = r["unmatched_reason"] or "unknown"
             reason_counts[reason] = reason_counts.get(reason, 0) + 1
+
+    fieldnames = list(output_rows[0].keys())
+    with open(args.output, "w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(output_rows)
 
     print(
         f"[DONE] Wrote {len(output_rows)} rows to {args.output} "
