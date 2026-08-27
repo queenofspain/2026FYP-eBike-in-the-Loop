@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- generated on 2026-08-25T19:50:44.190552+10:00 by Eclipse SUMO GUI 1.27.1
+<!-- generated on 2026-08-27T13:56:49.853759+10:00 by Eclipse SUMO GUI 1.27.1
 <sumoConfiguration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/sumoConfiguration.xsd">
 
     <input>
-        <net-file value="C:\Uni\Final Year Project\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-08-25-19-43-30\osm.net.xml.gz"/>
-        <route-files value="C:\Uni\Final Year Project\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-08-25-19-43-30\osm.bicycle.trips.xml,C:\Uni\Final Year Project\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-08-25-19-43-30\osm.passenger.trips.xml,C:\Uni\Final Year Project\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-08-25-19-43-30\osm.pedestrian.rou.xml"/>
+        <net-file value="C:\Uni\Final Year Project\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-08-25-19-43-30\osm.net.xml"/>
+        <route-files value="C:\Uni\Final Year Project\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-08-25-19-43-30\full_campus_v2.rou.xml"/>
         <additional-files value="C:\Uni\Final Year Project\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-08-25-19-43-30\osm.poly.xml.gz,C:\Uni\Final Year Project\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-08-25-19-43-30\output.add.xml"/>
     </input>
 
@@ -20,7 +20,8 @@
     </processing>
 
     <routing>
-        <device.rerouting.adaptation-steps value="18"/>
+        <device.reroutin</tripinfos>
+teps value="18"/>
         <device.rerouting.adaptation-interval value="10"/>
     </routing>
 
