@@ -1,0 +1,48 @@
+<routes>
+
+    <!-- Bicycle vehicle type -->
+    <!-- <vType id="bike" vClass="bicycle" maxSpeed="12"/> -->
+
+    <!-- Your predefined route -->
+    <route id="test_route_1"
+    edges="
+299173863
+988580230#0
+E9
+E10
+E11
+E12
+E13
+-988580237#0
+E1
+E2
+E3
+E4
+E5
+E6
+E7
+E0
+-11294993
+-11294994
+310292423
+63906910#0
+63906910#1
+4577074#0
+4577074#1
+4577074#2
+405414870#0
+405414870#2
+405414870#3
+E14
+-11294993
+-11294994
+310292423
+"/>
+
+    <!-- Reference vehicle that follows the route
+    <vehicle id="simBike"
+             type="bike"
+             route="block_route"
+             depart="0"/> -->
+
+</routes>
