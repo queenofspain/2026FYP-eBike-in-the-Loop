@@ -1,28 +1,13 @@
 """
 live_phone_to_sumo.py
 ======================================================================
-eBike-in-the-Loop live bridge -- UNIFIED MULTI-METHOD RUNNER.
+eBike-in-the-Loop live bridge.
 
-One script, five map-matching methods. Which one runs is chosen at
-launch, either as a command-line flag or from an interactive menu:
-
-    python live_phone_to_sumo.py --method st
-    python live_phone_to_sumo.py --method native --no-gui
-    python live_phone_to_sumo.py                 (prompts for a method)
-
-Methods:
-    native  -- SUMO's own moveToXY snapping (the geometric baseline)
-    topo    -- TopologicalMatcher   (topological.py)
-    fuzzy   -- FuzzyMatcher         (fuzzy.py)
-    hmm     -- HMMMatcher           (hmm.py)
-    st      -- STMatcher            (STMatching.py)
-
-The loop itself does three jobs, unchanged from the single-method
-version:
+This is the TraCI-side half of the pipeline. It does three jobs on a loop:
 
     1. Poll the Flask server for the newest GPS fix the phone posted.
     2. Convert that lat/lon into SUMO network (x, y) coordinates and hand
-       it to whichever matcher was selected.
+       it to the ST-Matching map-matcher.
     3. Move the virtual eBike to the matched position inside a running
        SUMO simulation via traci.vehicle.moveToXY().
 
@@ -34,47 +19,31 @@ Data flow for one update:
     this script --(HTTP GET)--> Flask /latest --> convertGeo() --> (x, y)
                                   |
                                   v
-              [optional Kalman pre-filter] --> MATCHER.match(...)
+                   STMatcher.match(x, y, timestamp, speed, course)
                                   |
                                   v
                         traci.vehicle.moveToXY(...)  --> eBike moves
 
-WHY ONE SCRIPT INSTEAD OF FIVE
-------------------------------
-Every difference between the five runs that is NOT the matcher itself is
-a confound in the CMP comparison: polling interval, staleness cutoff,
-spawn behaviour, speed handling, keepRoute, logging. Holding all of that
-in one file means the five methods are genuinely compared under
-identical conditions, and a fix to the harness applies to all of them at
-once. Method-specific settings live in exactly one place, the METHODS
-registry below.
+The matcher already decides the final on-edge position, so the vehicle is
+placed with keepRoute=2 (exact placement, no re-snapping by SUMO).
 
-NO FALLBACK TO NATIVE MATCHING. If a matcher returns nothing, the update
+NO FALLBACK TO NATIVE MATCHING. If the matcher returns nothing, the update
 is SKIPPED entirely and the bike holds its last position. Falling back to
 SUMO's own snapping would silently mix native results into the method's
 CMP score and make the five-method comparison meaningless. A skipped fix
-is visible in the logs; a contaminated one is not. (The "native" method
-is the one exception, because there the native result IS the method.)
+is visible in the logs; a contaminated one is not.
 
-TIMESTAMPS: ST-Matching needs the elapsed time between fixes for its
-temporal term, so the phone's own fix time is parsed and passed through
-to every matcher (harmless to those that ignore it). Phone time is used
-rather than arrival time because the temporal term is about how fast the
-RIDER moved, not how fast the network delivered the packet.
-
-CSV LOG: --log writes one row per fix with the raw converted GPS point,
-the matcher's chosen point, and the position SUMO actually ended up
-placing the bike at. Those three columns are what the CMP script needs;
-recording them live avoids re-deriving them from console text later.
+TIMESTAMPS: unlike the topological matcher, ST-Matching needs the elapsed
+time between fixes for its temporal term, so the phone's own fix time is
+parsed and passed through. Phone time is used rather than arrival time
+because the temporal term is about how fast the RIDER moved, not how fast
+the network delivered the packet.
 ----------------------------------------------------------------------
 """
 
 import os
 import sys
-import csv
 import time
-import inspect
-import argparse
 import requests
 import xml.etree.ElementTree as ET
 from datetime import datetime
@@ -94,10 +63,17 @@ POLL_INTERVAL = 1.0        # seconds between polls of the Flask server
 STALE_DATA_SECONDS = 5.0   # ignore phone fixes older than this
 SUMO_STEP_LENGTH = 1.0     # simulation seconds advanced per step
 MATCH_THRESHOLD = 100.0    # moveToXY search radius (m) for candidate edges
-SUMO_DELAY_MS = "1000"     # GUI pacing, handled by SUMO's own event loop
 
-# Directory for the per-run CSV logs written when --log is passed.
-LOG_DIR = "runs"
+# ---- ST-Matching parameters ----
+# These are the knobs to sweep when tuning. They are named here rather than
+# buried in the constructor call so a parameter sweep is a one-line edit.
+ST_SEARCH_RADIUS = 50.0    # m; hard cutoff for candidate edge lookup
+ST_SIGMA = 20.0            # m; GPS error std for the observation probability
+ST_WINDOW_SIZE = 8         # fixes held in the fixed-lag Viterbi window
+ST_MAX_CANDIDATES = 5      # per fix; transition cost is quadratic in this
+ST_TEMPORAL_MODE = "lou"   # "lou" (faithful) | "ratio" (corrected) | "off"
+ST_SPEED_REFERENCE = None  # m/s; set to rescale car speed limits for a bike
+ST_VCLASS = None           # e.g. "bicycle" to reject disallowed edges
 # ----------------------------------
 
 # SUMO ships its Python TraCI library under $SUMO_HOME/tools, so that path
@@ -112,289 +88,22 @@ if TOOLS not in sys.path:
     sys.path.append(TOOLS)
 
 import traci
+# The ST-Matching map-matcher lives in st_matching.py alongside this file.
+from STMatching import STMatcher
+
+# Built once in main(), read inside move_vehicle_to_phone_position().
+MATCHER = None
 
 # Anchor relative paths to THIS FILE's directory, not the working directory,
 # so the script runs correctly regardless of where it was launched from.
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-# The script's own directory must also be importable, otherwise launching
-# from elsewhere breaks "from topological import ...".
-if SCRIPT_DIR not in sys.path:
-    sys.path.insert(0, SCRIPT_DIR)
-
-
-# ======================================================================
-# METHOD REGISTRY
-# ======================================================================
-# One entry per map-matching method. This is the ONLY place that knows
-# anything method-specific, so adding the remaining matchers is a matter
-# of filling in a module name, a class name and a kwargs dict -- no
-# changes anywhere else in the file.
-#
-#   module     : python module to import the matcher class from, or None
-#                for the native baseline (which uses no matcher object).
-#   cls        : class name inside that module.
-#   kwargs     : constructor arguments. Unsupported keys are dropped
-#                automatically (see build_matcher), so a matcher whose
-#                constructor doesn't take, say, "sigma" is fine.
-#   keep_route : the moveToXY keepRoute bitmask used for this method.
-#                  0 = let SUMO re-snap geometrically  -> native only
-#                  2 = exact placement, matcher decision preserved
-#                  6 = bits 1+2, exact placement + lane-permission bypass
-#                Native must stay at 0: re-snapping IS the baseline being
-#                measured. The matchers use 6 rather than the nominally
-#                correct 2 because bare keepRoute=2 can leave the vehicle
-#                lane-less and trigger the sumo-gui freeze in upstream
-#                SUMO issue #10974; bit 2 bypasses the lane permission
-#                check without touching the placed coordinates.
-#   label      : human-readable name for logs and the CSV filename.
-
-METHODS = {
-    "native": {
-        "module": None,
-        "cls": None,
-        "kwargs": {},
-        "keep_route": 0,
-        "label": "Geometric (SUMO native moveToXY)",
-    },
-    "topo": {
-        "module": "topological",
-        "cls": "TopologicalMatcher",
-        "kwargs": {
-            "search_radius": 50.0,
-            # Weights for S(e) = w1*prox + w2*head + w3*conn + w4*turn.
-            # Left commented rather than guessed -- uncomment and set to
-            # whatever topological.py actually names them.
-            # "w_prox": 0.30, "w_head": 0.30, "w_conn": 0.30, "w_turn": 0.10,
-        },
-        "keep_route": 6,
-        "label": "Topological (weighted, Velaga et al.)",
-    },
-    "fuzzy": {
-        "module": "fuzzy",
-        "cls": "FuzzyMatcher",
-        "kwargs": {
-            "search_radius": 50.0,
-        },
-        "keep_route": 6,
-        "label": "Fuzzy logic (Quddus et al.)",
-    },
-    "hmm": {
-        "module": "hmm",
-        "cls": "HMMMatcher",
-        "kwargs": {
-            "search_radius": 50.0,
-            "sigma": 20.0,        # emission Gaussian std, metres
-            "beta": 2.0,          # transition detour tolerance
-            "window_size": 8,     # fixes in the fixed-lag Viterbi window
-            "max_candidates": 5,
-            "nominal_dt": POLL_INTERVAL,
-        },
-        "keep_route": 6,
-        "label": "Hidden Markov Model (Newson & Krumm)",
-    },
-    "st": {
-        "module": "STMatching",
-        "cls": "STMatcher",
-        "kwargs": {
-            "search_radius": 50.0,    # m; hard cutoff for candidate lookup
-            "sigma": 20.0,            # m; GPS error std for observation prob
-            "window_size": 8,         # fixes in the fixed-lag Viterbi window
-            "max_candidates": 5,      # transition cost is quadratic in this
-            "temporal_mode": "lou",   # "lou" | "ratio" | "off"
-            "speed_reference": None,  # m/s; rescales car speed limits
-            "nominal_dt": POLL_INTERVAL,
-            "vclass": None,           # e.g. "bicycle" to reject disallowed edges
-        },
-        "keep_route": 6,
-        "label": "ST-Matching (Lou et al.)",
-    },
-}
-
-# Accepted on the command line in addition to the canonical keys above,
-# so "--method topological" or "--method geometric" also work.
-METHOD_ALIASES = {
-    "geometric": "native",
-    "base": "native",
-    "sumo": "native",
-    "topological": "topo",
-    "fuzzylogic": "fuzzy",
-    "stmatching": "st",
-    "st-matching": "st",
-}
-
-# ---- Run-time state, all set once in main() and read by the loop ----
-METHOD_KEY = None     # which registry entry is active
-METHOD_CFG = None     # the registry dict for that entry
-MATCHER = None        # the matcher instance, or None for native
-KALMAN = None         # optional pre-filter instance, or None
-CSV_WRITER = None     # csv.writer for the run log, or None
-CSV_FILE = None       # the underlying file handle, closed on shutdown
-
-
-def resolve_method(name):
-    """
-    Normalise a user-supplied method name to a registry key.
-
-    Case-insensitive and alias-aware so "ST", "st-matching" and
-    "STMatching" all land on the same entry. Raises with the full list of
-    valid names rather than failing obscurely later.
-    """
-    key = str(name).strip().lower()
-    key = METHOD_ALIASES.get(key, key)
-    if key not in METHODS:
-        valid = ", ".join(METHODS.keys())
-        raise ValueError(f"Unknown method '{name}'. Choose one of: {valid}")
-    return key
-
-
-def prompt_for_method():
-    """
-    Interactive fallback when --method is omitted.
-
-    Prints a numbered menu and accepts either the number or the method
-    name. Re-prompts on bad input rather than exiting, since a typo at
-    launch is not worth restarting the whole run for.
-    """
-    keys = list(METHODS.keys())
-
-    print("\n" + "=" * 62)
-    print(" eBike-in-the-Loop -- select map-matching method")
-    print("=" * 62)
-    for i, k in enumerate(keys, start=1):
-        print(f"  {i}. {k:<8} {METHODS[k]['label']}")
-    print("=" * 62)
-
-    while True:
-        choice = input("Method [number or name]: ").strip()
-
-        # Accept the menu number as a shortcut for the name.
-        if choice.isdigit():
-            idx = int(choice)
-            if 1 <= idx <= len(keys):
-                return keys[idx - 1]
-            print(f"  -> pick 1..{len(keys)}")
-            continue
-
-        try:
-            return resolve_method(choice)
-        except ValueError as e:
-            print(f"  -> {e}")
-
-
-def build_matcher(method_key, net_file):
-    """
-    Import and instantiate the matcher class for `method_key`.
-
-    Returns None for the native baseline, which has no matcher object.
-
-    Constructor kwargs from the registry are filtered against the class's
-    actual signature before being passed. That is deliberate: the five
-    matchers were written at different times and do not all take the same
-    tuning parameters, and a hard TypeError at launch over an unused
-    keyword would be a pointless obstacle. Anything dropped is printed,
-    so a silently ignored parameter can't quietly skew a run.
-    """
-    cfg = METHODS[method_key]
-
-    # Native uses SUMO's own snapping; there is nothing to construct.
-    if cfg["module"] is None:
-        return None
-
-    # Import late, not at module load, so a missing or half-finished
-    # matcher file only breaks the run that actually selected it.
-    try:
-        module = __import__(cfg["module"], fromlist=[cfg["cls"]])
-    except ImportError as e:
-        raise ImportError(
-            f"Could not import '{cfg['module']}' for method '{method_key}': {e}\n"
-            f"       Expected {cfg['module']}.py alongside this script in\n"
-            f"       {SCRIPT_DIR}"
-        ) from e
-
-    try:
-        cls = getattr(module, cfg["cls"])
-    except AttributeError as e:
-        raise AttributeError(
-            f"'{cfg['module']}' has no class '{cfg['cls']}'. "
-            f"Update METHODS['{method_key}']['cls'] to the real class name."
-        ) from e
-
-    # Keep only the kwargs this particular constructor accepts.
-    accepted = set(inspect.signature(cls.__init__).parameters)
-    kwargs = {k: v for k, v in cfg["kwargs"].items() if k in accepted}
-    dropped = sorted(set(cfg["kwargs"]) - set(kwargs))
-    if dropped:
-        print(f"[WARN] {cfg['cls']} does not accept: {', '.join(dropped)} "
-              f"-- these settings were IGNORED for this run.")
-
-    print(f"[INFO] Loading network into {cfg['cls']}...")
-    return cls(net_file, **kwargs)
-
-
-def build_kalman(net_file):
-    """
-    Build the optional Kalman pre-filter used by --kalman.
-
-    Kept as a separate module (kalman.py) because the paper treats it as a
-    pre-processing stage applicable to all five matchers, not as part of
-    any one of them. Missing module is a hard error rather than a silent
-    disable: a run labelled "kalman" in the results table that quietly
-    didn't filter anything would be worse than no run at all.
-    """
-    try:
-        from kalman import KalmanPreFilter
-    except ImportError as e:
-        raise ImportError(
-            f"--kalman requested but kalman.py could not be imported: {e}\n"
-            f"       Expected a KalmanPreFilter class with a "
-            f"filter(x, y, dt) -> (x, y) method in {SCRIPT_DIR}"
-        ) from e
-    return KalmanPreFilter()
-
-
-def open_run_log(method_key, use_kalman):
-    """
-    Open the per-run CSV and write its header row.
-
-    One file per run, named by method and start time, so repeated runs of
-    the same method never overwrite each other. The three coordinate
-    pairs (raw / matched / actual) are the columns the CMP script needs:
-    raw is ground-truth-side, actual is what SUMO really did, and matched
-    is the matcher's intent -- which differs from actual whenever
-    keepRoute overrides the placement.
-    """
-    global CSV_FILE, CSV_WRITER
-
-    log_dir = os.path.join(SCRIPT_DIR, LOG_DIR)
-    os.makedirs(log_dir, exist_ok=True)
-
-    stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-    suffix = "_kalman" if use_kalman else ""
-    path = os.path.join(log_dir, f"{method_key}{suffix}_{stamp}.csv")
-
-    # newline="" is required on Windows or csv writes blank rows between
-    # every record.
-    CSV_FILE = open(path, "w", newline="", encoding="utf-8")
-    CSV_WRITER = csv.writer(CSV_FILE)
-    CSV_WRITER.writerow([
-        "wall_time", "phone_timestamp", "method", "kalman",
-        "lat", "lon",
-        "raw_x", "raw_y",          # converted GPS, before matching
-        "filt_x", "filt_y",        # after Kalman (== raw when disabled)
-        "match_x", "match_y",      # matcher's chosen on-edge point
-        "actual_x", "actual_y",    # where SUMO ended up placing the bike
-        "edge_id", "raw_dist", "score", "correction_m", "match_ms",
-        "phone_speed_mps", "sumo_speed_mps", "phone_course_deg",
-    ])
-    print(f"[INFO] Logging to {path}")
-    return path
 
 
 def parse_sumocfg_for_netfile(sumocfg_path: str) -> str:
     """
     Read the .sumocfg XML and return the absolute path to its <net-file>.
 
-    The matchers need the .net.xml directly (they load the network with
+    The matcher needs the .net.xml directly (it loads the network with
     sumolib, independently of TraCI), but the scenario only names the net
     file inside the config. This digs it out and resolves it relative to
     the config's own directory so it works regardless of launch dir.
@@ -475,11 +184,11 @@ def phone_timestamp_seconds(ts_raw):
     """
     Convert the phone's ISO-8601 fix time into epoch seconds (float).
 
-    ST-Matching and the HMM divide by the elapsed time between fixes, so
-    this feeds their temporal terms directly. The phone's OWN timestamp is
-    used rather than the server arrival time: network jitter would
-    otherwise show up as the rider changing speed. Returns None if
-    unparseable, in which case a matcher falls back to its nominal_dt.
+    ST-Matching divides by the elapsed time between fixes, so this feeds the
+    temporal term directly. The phone's OWN timestamp is used rather than
+    the server arrival time: network jitter would otherwise show up as the
+    rider changing speed. Returns None if unparseable, in which case the
+    matcher falls back to its nominal_dt.
     """
     if not ts_raw:
         return None
@@ -587,10 +296,9 @@ def parse_course_deg(course_deg_raw):
     normalised into the 0..360 range. INVALID_DOUBLE_VALUE is SUMO's
     sentinel that tells moveToXY "no angle supplied, work it out yourself".
 
-    NOTE: not every matcher uses heading -- Lou's ST-Matching formulation
-    has no heading term, while the topological and fuzzy methods do. The
-    angle is passed to moveToXY regardless so the bike is drawn facing the
-    right way in the GUI.
+    NOTE: ST-Matching itself does not use heading -- Lou's formulation has
+    no heading term. The angle is still parsed and passed to moveToXY so the
+    bike is drawn facing the right way in the GUI.
     """
     try:
         if course_deg_raw is None:
@@ -610,64 +318,15 @@ def parse_course_deg(course_deg_raw):
 
 def _fmt(value, spec=".3f"):
     """Format a float for the log line, or '--' if it's None."""
-    # Score components are legitimately None on the first fix of a route
-    # and whenever a Viterbi chain restarts, so the logger has to
-    # tolerate it. None ("not applicable") and 0.0 ("scored zero") are
-    # genuinely different and must not be collapsed.
+    # The ST components are legitimately None on the first fix of a route and
+    # whenever the Viterbi chain restarts, so the logger has to tolerate it.
     return format(value, spec) if value is not None else "--"
-
-
-def _fmt_components(comps):
-    """
-    Render a matcher's score components as "name=value" pairs.
-
-    Built from whatever keys the matcher returned rather than a fixed
-    list, because the five methods report different terms: ST gives
-    obs/trans/fs/ft, the topological method gives prox/head/conn/turn,
-    fuzzy gives its rule firing strengths, and native gives nothing.
-    """
-    if not comps:
-        return ""
-    return " ".join(f"{k}={_fmt(v)}" for k, v in comps.items())
-
-
-def native_match(x, y, lon, lat):
-    """
-    Baseline "matcher": ask SUMO which edge this point is on and let
-    moveToXY do its own snapping.
-
-    Returns a dict in the same shape the real matchers return, so the rest
-    of the loop doesn't need to know which method is running. The x/y
-    handed back are the RAW converted point, not a snapped one, because
-    with keepRoute=0 the snapping happens inside moveToXY -- the resulting
-    position is read back afterwards and logged as actual_x/actual_y.
-
-    convertRoad is used only to supply an edge id for the call; it is the
-    same nearest-edge projection described by equation (3) in the paper.
-    """
-    try:
-        edge_id, pos, lane_index = traci.simulation.convertRoad(lon, lat, isGeo=True)
-    except traci.TraCIException as e:
-        print(f"[WARN] convertRoad failed: {e}")
-        return None
-
-    return {
-        "x": x,
-        "y": y,
-        "edge_id": edge_id,
-        "lane_index": lane_index,
-        "raw_dist": None,
-        "score": None,
-        "components": {},
-        "window_len": None,
-    }
 
 
 def move_vehicle_to_phone_position(lat, lon, speed_mps, course_deg_raw, fix_time):
     """
-    Convert one GPS fix to SUMO coordinates, run the selected matcher, and
-    move the controlled bike there. Respawns the vehicle first if it
-    disappeared.
+    Convert one GPS fix to SUMO coordinates, run ST-Matching, and move the
+    controlled bike there. Respawns the vehicle first if it disappeared.
 
     If the matcher returns None the update is skipped -- see the module
     docstring on why there is deliberately no native-matching fallback.
@@ -684,44 +343,29 @@ def move_vehicle_to_phone_position(lat, lon, speed_mps, course_deg_raw, fix_time
         print(f"[WARN] Geo conversion failed: {e}")
         return
 
-    # ---- Optional Kalman pre-filter -----------------------------------
-    # Applied to the converted (x, y) rather than to lat/lon so the state
-    # and covariance are in metres, which is what the constant-velocity
-    # model in equations (7)-(8) assumes. Runs identically ahead of all
-    # five methods, which is the point of it being a separate stage.
-    filt_x, filt_y = x, y
-    if KALMAN is not None:
-        try:
-            filt_x, filt_y = KALMAN.filter(x, y, POLL_INTERVAL)
-        except Exception as e:
-            print(f"[WARN] Kalman filter failed, using raw point: {e}")
-            filt_x, filt_y = x, y
-
     # angle_to_use is what we hand to moveToXY (may be INVALID_DOUBLE_VALUE).
     angle_to_use = parse_course_deg(course_deg_raw)
 
-    # The matchers want a plain float or None for heading, so translate
-    # SUMO's INVALID sentinel back into None before calling them.
+    # The matcher wants a plain float or None for heading, so translate
+    # SUMO's INVALID sentinel back into None before calling it.
     course_for_match = angle_to_use
     if course_for_match == traci.constants.INVALID_DOUBLE_VALUE:
         course_for_match = None
 
-    # ---- Run the selected matcher -------------------------------------
-    # match_ms is the per-fix matching latency. ST-Matching and the HMM run
-    # Viterbi over a window with shortest-path queries per candidate pair,
-    # so they are the expensive methods and this is the number the
-    # real-time claim rests on. Measured identically for all five.
+    # Run ST-Matching on the converted point. Wrapped in a broad try/except
+    # so a matcher bug skips one fix rather than killing the loop.
+    # match_ms is the per-fix matching latency -- ST-Matching runs Viterbi
+    # over a window with shortest-path queries per candidate pair, so this is
+    # the expensive method and the number the real-time claim rests on.
     match_start = time.perf_counter()
     try:
-        if MATCHER is None:
-            result = native_match(filt_x, filt_y, lon, lat)
-        else:
-            result = MATCHER.match(
-                filt_x, filt_y,
-                timestamp=fix_time,
-                speed_mps=speed_mps,
-                course_deg=course_for_match,
-            )
+        result = MATCHER.match(
+            x, y,
+            timestamp=fix_time,
+            speed_mps=speed_mps,
+            course_deg=course_for_match,
+        )
+        
     except Exception:
         import traceback
         print("[ERROR] Matcher raised:")
@@ -731,22 +375,19 @@ def move_vehicle_to_phone_position(lat, lon, speed_mps, course_deg_raw, fix_time
 
     # No match -> skip this fix entirely. The bike holds its last position.
     if result is None:
-        print(f"[SKIP] {METHOD_KEY}: no match for ({filt_x:.1f}, {filt_y:.1f}) "
-              f"-- update skipped ({match_ms:.1f} ms)")
+        print(f"[SKIP] No candidate edge within {ST_SEARCH_RADIUS:.0f} m "
+              f"of ({x:.1f}, {y:.1f}) -- update skipped ({match_ms:.1f} ms)")
         return
 
     # Matcher succeeded: use its chosen on-edge (x, y) and edge id.
     move_x, move_y = result["x"], result["y"]
     edge_id = result["edge_id"]
-    # Matchers that pick a specific lane can say so; the rest default to 0.
-    lane_index = result.get("lane_index", 0)
+    lane_index = 0
 
-    # keepRoute comes from the registry: 0 for native (SUMO re-snaps, which
-    # is the baseline being measured), 6 for the matchers (exact placement
-    # so their decision survives, plus the lane-permission bypass that
-    # avoids the sumo-gui freeze).
-    keep_route = METHOD_CFG["keep_route"]
-
+    # keepRoute=2 places the bike at exactly (move_x, move_y) without
+    # re-snapping, so the matcher's decision survives. Anything else lets
+    # SUMO's native matching override it at precisely the junctions this
+    # project is about.
     try:
         traci.vehicle.moveToXY(
             vehID=VEHICLE_ID,
@@ -755,7 +396,7 @@ def move_vehicle_to_phone_position(lat, lon, speed_mps, course_deg_raw, fix_time
             x=move_x,
             y=move_y,
             angle=angle_to_use,
-            keepRoute=keep_route,
+            keepRoute=6,
             matchThreshold=MATCH_THRESHOLD
         )
     except traci.TraCIException as e:
@@ -769,17 +410,7 @@ def move_vehicle_to_phone_position(lat, lon, speed_mps, course_deg_raw, fix_time
     except traci.TraCIException:
         pass
 
-    # ---- Read back SUMO's current state --------------------------------
-    # getPosition is the authoritative answer to "where did the bike
-    # actually end up". For native it is the only way to see the snapped
-    # point at all; for the matchers it is the check that keepRoute really
-    # did preserve the requested coordinates. CMP is computed from this
-    # column, not from move_x/move_y.
-    try:
-        actual_x, actual_y = traci.vehicle.getPosition(VEHICLE_ID)
-    except traci.TraCIException:
-        actual_x, actual_y = None, None
-
+    # ---- Read back SUMO's current state for the comparison print-out ----
     try:
         sumo_speed_mps = traci.vehicle.getSpeed(VEHICLE_ID)
     except traci.TraCIException:
@@ -815,142 +446,79 @@ def move_vehicle_to_phone_position(lat, lon, speed_mps, course_deg_raw, fix_time
     # point -- but a persistent large offset is worth investigating.
     correction_m = ((move_x - x) ** 2 + (move_y - y) ** 2) ** 0.5
 
-    # ---- Console line, one per update ---------------------------------
-    # xy is the position requested from moveToXY; act is where SUMO put
-    # the bike. Those two diverging means keepRoute overrode the matcher.
-    act_str = (f"({actual_x:.1f}, {actual_y:.1f})"
-               if actual_x is not None else "(N/A)")
-    comp_str = _fmt_components(result.get("components"))
-    win = result.get("window_len")
+    # ST score components. trans and ft are the two terms that the header
+    # comment in st_matching.py predicts will be uninformative at 1 Hz;
+    # watching them here is the quickest sanity check of that prediction.
+    comps = result.get("components", {})
 
+    # One line per update. xy is the MATCHED position actually sent to
+    # moveToXY; raw is the unmodified converted GPS point.
     print(
-        f"[OK][{METHOD_KEY}] {VEHICLE_ID} -> edge={edge_id}, "
-        f"xy=({move_x:.1f}, {move_y:.1f}), act={act_str}, "
-        f"raw=({x:.1f}, {y:.1f}), corr={correction_m:.2f} m | "
-        + (f"win={win} " if win is not None else "")
-        + (comp_str + " | " if comp_str else "")
-        + f"match={match_ms:.1f} ms | "
+        f"[OK] {VEHICLE_ID} -> edge={edge_id}, "
+        f"xy=({move_x:.1f}, {move_y:.1f}), raw=({x:.1f}, {y:.1f}), "
+        f"corr={correction_m:.2f} m | "
+        f"win={result.get('window_len', '--')} "
+        f"obs={_fmt(comps.get('obs'), '.5f')} "
+        f"trans={_fmt(comps.get('trans'))} "
+        f"fs={_fmt(comps.get('fs'), '.5f')} "
+        f"ft={_fmt(comps.get('ft'))} | "
+        f"match={match_ms:.1f} ms | "
         f"PHONE speed={phone_speed_mps:.2f} m/s ({phone_speed_kmh:.2f} km/h), "
         f"PHONE course={phone_course_str} | "
         f"SUMO speed={sumo_speed_str}, SUMO angle={sumo_angle_str}"
     )
 
-    # ---- CSV row for offline CMP evaluation ---------------------------
-    if CSV_WRITER is not None:
-        CSV_WRITER.writerow([
-            datetime.now().isoformat(timespec="milliseconds"),
-            fix_time, METHOD_KEY, KALMAN is not None,
-            lat, lon,
-            f"{x:.4f}", f"{y:.4f}",
-            f"{filt_x:.4f}", f"{filt_y:.4f}",
-            f"{move_x:.4f}", f"{move_y:.4f}",
-            "" if actual_x is None else f"{actual_x:.4f}",
-            "" if actual_y is None else f"{actual_y:.4f}",
-            edge_id,
-            "" if result.get("raw_dist") is None else f"{result['raw_dist']:.4f}",
-            "" if result.get("score") is None else f"{result['score']:.6f}",
-            f"{correction_m:.4f}", f"{match_ms:.3f}",
-            f"{phone_speed_mps:.3f}",
-            "" if sumo_speed_mps is None else f"{sumo_speed_mps:.3f}",
-            "" if phone_course_deg is None else f"{phone_course_deg:.1f}",
-        ])
-        # Flush every row: a run that ends with Ctrl+C or a SUMO crash
-        # would otherwise lose whatever was still sitting in the buffer,
-        # and these are ride recordings that can't be regenerated.
-        CSV_FILE.flush()
-
-
-def parse_args():
-    """Command-line interface. Everything here has a sensible default."""
-    p = argparse.ArgumentParser(
-        description="eBike-in-the-Loop live bridge with selectable map matching.",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="Methods:\n" + "\n".join(
-            f"  {k:<8} {v['label']}" for k, v in METHODS.items()
-        ),
-    )
-    p.add_argument("-m", "--method", default=None,
-                   help="matching method to run; prompts if omitted")
-    p.add_argument("--kalman", action="store_true",
-                   help="apply the Kalman pre-filter before matching")
-    p.add_argument("--log", action="store_true",
-                   help=f"write a per-fix CSV into ./{LOG_DIR}/")
-    p.add_argument("--no-gui", action="store_true",
-                   help="run headless (sumo instead of sumo-gui)")
-    p.add_argument("--cfg", default=SUMO_CFG,
-                   help="path to the .sumocfg, relative to this script")
-    return p.parse_args()
-
 
 def main():
-    # These are assigned here and read inside the move function, so they
-    # have to be declared global before first assignment.
-    global METHOD_KEY, METHOD_CFG, MATCHER, KALMAN
-
-    args = parse_args()
-
-    # Method comes from --method if given, otherwise from the menu.
-    METHOD_KEY = resolve_method(args.method) if args.method else prompt_for_method()
-    METHOD_CFG = METHODS[METHOD_KEY]
+    # MATCHER is assigned here and read inside move_vehicle_to_phone_position,
+    # so it has to be declared global before first assignment.
+    global MATCHER
 
     # Resolve and validate the SUMO config path up front, anchored to this
     # script's directory so the launch dir doesn't matter.
-    sumocfg_abs = os.path.abspath(os.path.join(SCRIPT_DIR, args.cfg))
+    sumocfg_abs = os.path.abspath(os.path.join(SCRIPT_DIR, SUMO_CFG))
     if not os.path.exists(sumocfg_abs):
         raise FileNotFoundError(f"SUMO config not found: {sumocfg_abs}")
 
-    # Extract the .net.xml path the matchers need from the config.
+    # Extract the .net.xml path the matcher needs from the config.
     net_file = parse_sumocfg_for_netfile(sumocfg_abs)
 
-    print("\n" + "-" * 62)
-    print(f"[INFO] Method:     {METHOD_KEY} -- {METHOD_CFG['label']}")
-    print(f"[INFO] Kalman:     {'on' if args.kalman else 'off'}")
-    print(f"[INFO] keepRoute:  {METHOD_CFG['keep_route']}")
+    # Build the matcher once (it loads the whole network with sumolib, which
+    # is relatively expensive) and reuse it for every fix.
+    print("[INFO] Loading network into ST-Matching matcher...")
+    MATCHER = STMatcher(
+        net_file,
+        search_radius=ST_SEARCH_RADIUS,
+        sigma=ST_SIGMA,
+        window_size=ST_WINDOW_SIZE,
+        max_candidates=ST_MAX_CANDIDATES,
+        temporal_mode=ST_TEMPORAL_MODE,
+        speed_reference=ST_SPEED_REFERENCE,
+        nominal_dt=POLL_INTERVAL,
+        vclass=ST_VCLASS,
+    )
+    print(f"[INFO] ST-Matching ready "
+          f"(window={ST_WINDOW_SIZE}, candidates={ST_MAX_CANDIDATES}, "
+          f"temporal={ST_TEMPORAL_MODE}).")
+
     print(f"[INFO] SUMO config: {sumocfg_abs}")
     print(f"[INFO] Net file:    {net_file}")
-    print("-" * 62)
-
-    # Build the matcher ONCE (readNet parses the whole network, which is
-    # seconds for a campus-sized map) and reuse it for every fix.
-    MATCHER = build_matcher(METHOD_KEY, net_file)
-    if MATCHER is None:
-        print("[INFO] Native SUMO matching -- no external matcher loaded.")
-    else:
-        # Echo the settings that actually reached the constructor, so the
-        # console records the exact configuration of this run.
-        shown = ", ".join(f"{k}={v}" for k, v in METHOD_CFG["kwargs"].items())
-        print(f"[INFO] {METHOD_CFG['cls']} ready ({shown}).")
-
-    # Optional pre-filter, built after the matcher so a missing kalman.py
-    # fails before SUMO is launched rather than after.
-    if args.kalman:
-        KALMAN = build_kalman(net_file)
-        print("[INFO] Kalman pre-filter active.")
-
-    if args.log:
-        open_run_log(METHOD_KEY, args.kalman)
-
     print("[INFO] Starting SUMO...")
 
     # Launch SUMO under TraCI's control:
-    #   sumo-gui / sumo -> visual front-end, or headless with --no-gui
+    #   sumo-gui        -> visual front-end (use "sumo" for headless)
     #   --start         -> begin stepping immediately, no manual play
     #   --delay         -> GUI pacing; handled by SUMO so its event loop
     #                      keeps running (a manual sleep() starves the GUI)
     #   --end 1000000   -> effectively never auto-terminate
-    binary = "sumo" if args.no_gui else "sumo-gui"
-    cmd = [
-        binary,
+    traci.start([
+        "sumo-gui",
         "-c", sumocfg_abs,
         "--step-length", str(SUMO_STEP_LENGTH),
+        "--delay", "1000",
         "--start",
-        "--end", "1000000",
-    ]
-    # --delay only means anything to the GUI build.
-    if not args.no_gui:
-        cmd += ["--delay", SUMO_DELAY_MS]
-
-    traci.start(cmd)
+        "--end", "1000000"
+    ])
 
     # The vehicle type must exist before the first spawn attempt.
     ensure_vehicle_type()
@@ -999,7 +567,7 @@ def main():
 
                         course_deg = data.get("course_deg")
 
-                        # Fix time in epoch seconds for the temporal terms.
+                        # Fix time in epoch seconds for the temporal term.
                         fix_time = phone_timestamp_seconds(phone_timestamp)
 
                         # Do the actual convert -> match -> move for this fix.
@@ -1011,13 +579,6 @@ def main():
         # Ctrl+C is the intended way to stop; exit the loop cleanly.
         print("\n[INFO] Stopped by user.")
     finally:
-        # Always close the log first -- if TraCI shutdown hangs, the ride
-        # data is already safely on disk.
-        if CSV_FILE is not None:
-            try:
-                CSV_FILE.close()
-            except Exception:
-                pass
         # Always try to close the TraCI connection so SUMO shuts down.
         try:
             traci.close()
