@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 import sys
 import time
@@ -26,6 +28,8 @@ if TOOLS not in sys.path:
     sys.path.append(TOOLS)
 
 import traci
+
+from kalman_filter import KalmanFilter
 
 
 def parse_sumocfg_for_netfile(sumocfg_path: str) -> str:
@@ -159,22 +163,44 @@ def parse_course_deg(course_deg_raw):
         return traci.constants.INVALID_DOUBLE_VALUE
 
 
-def move_vehicle_to_phone_position(lat: float, lon: float, speed_mps: float | None, course_deg_raw):
+def move_vehicle_to_phone_position(
+    kf: KalmanFilter,
+    lat: float,
+    lon: float,
+    speed_mps: float | None,
+    course_deg_raw,
+    dt: float,
+    accuracy_m: float | None,
+):
     """
-    Convert GPS to SUMO coordinates and move the controlled bike.
+    Convert GPS to SUMO coordinates, smooth it through the Kalman filter,
+    and move the controlled bike to the filtered position.
     Respawns vehicle if it disappeared.
     Uses phone course as the vehicle angle when available.
-    Prints both phone and SUMO speed/course.
+    Prints both raw and filtered position/speed for comparison.
     """
     if not spawn_vehicle_if_missing():
         return
 
     try:
-        x, y = traci.simulation.convertGeo(lon, lat, fromGeo=True)
+        raw_x, raw_y = traci.simulation.convertGeo(lon, lat, fromGeo=True)
         edge_id, pos, lane_index = traci.simulation.convertRoad(lon, lat, isGeo=True)
     except traci.TraCIException as e:
         print(f"[WARN] Geo conversion failed: {e}")
         return
+
+    try:
+        phone_course_deg = None if course_deg_raw is None else float(course_deg_raw)
+    except Exception:
+        phone_course_deg = None
+
+    filtered = kf.update(
+        raw_x, raw_y, dt,
+        speed_mps=speed_mps,
+        course_deg=phone_course_deg,
+        accuracy_m=accuracy_m,
+    )
+    x, y = filtered["x"], filtered["y"]
 
     angle_to_use = parse_course_deg(course_deg_raw)
 
@@ -194,7 +220,7 @@ def move_vehicle_to_phone_position(lat: float, lon: float, speed_mps: float | No
         return
 
     try:
-        traci.vehicle.setSpeed(VEHICLE_ID, max(0.0, float(speed_mps or 0.0)))
+        traci.vehicle.setSpeed(VEHICLE_ID, max(0.0, filtered["speed_mps"]))
     except traci.TraCIException:
         pass
 
@@ -227,9 +253,11 @@ def move_vehicle_to_phone_position(lat: float, lon: float, speed_mps: float | No
     phone_course_str = f"{phone_course_deg:.1f} deg" if phone_course_deg is not None else "N/A"
 
     print(
-        f"[OK] {VEHICLE_ID} -> edge={edge_id}, lane={lane_index}, xy=({x:.1f}, {y:.1f}) | "
+        f"[OK] {VEHICLE_ID} -> edge={edge_id}, lane={lane_index} | "
+        f"RAW xy=({raw_x:.1f}, {raw_y:.1f}) -> FILTERED xy=({x:.1f}, {y:.1f}) | "
         f"PHONE speed={phone_speed_mps:.2f} m/s ({phone_speed_kmh:.2f} km/h), "
         f"PHONE course={phone_course_str} | "
+        f"FILTERED speed={filtered['speed_mps']:.2f} m/s | "
         f"SUMO speed={sumo_speed_str}, SUMO angle={sumo_angle_str}"
     )
 
@@ -255,8 +283,11 @@ def main():
 
     ensure_vehicle_type()
 
+    kf = KalmanFilter()
+
     last_seen_timestamp = None
     last_poll_time = 0.0
+    last_fix_time = None
 
     try:
         while True:
@@ -289,7 +320,21 @@ def main():
 
                         course_deg = data.get("course_deg")
 
-                        move_vehicle_to_phone_position(lat, lon, speed_mps, course_deg)
+                        try:
+                            accuracy_m = float(data["accuracy_m"]) if data.get("accuracy_m") else None
+                        except Exception:
+                            accuracy_m = None
+
+                        fix_time = time.time()
+                        if last_fix_time is not None and (fix_time - last_fix_time) > STALE_DATA_SECONDS:
+                            print(f"[INFO] Gap of {fix_time - last_fix_time:.1f}s since last fix; resetting Kalman filter.")
+                            kf.reset()
+                        dt = POLL_INTERVAL if last_fix_time is None else (fix_time - last_fix_time)
+                        last_fix_time = fix_time
+
+                        move_vehicle_to_phone_position(
+                            kf, lat, lon, speed_mps, course_deg, dt, accuracy_m
+                        )
 
             elapsed = time.time() - step_start
             time.sleep(max(0.0, SUMO_STEP_LENGTH - elapsed))

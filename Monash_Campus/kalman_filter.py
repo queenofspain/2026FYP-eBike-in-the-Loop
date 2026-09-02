@@ -2,14 +2,11 @@
 Constant-velocity Kalman filter for smoothing live phone GPS before it
 reaches SUMO, for the eBike-in-the-Loop platform.
 
-Unlike HMM.py / topological.py / STMatching.py, this is not a map
-matcher -- it doesn't know about roads or edges. It only smooths the
-raw (x, y) track: state = [pos, vel] per axis, predicted forward each
-step and corrected against the new GPS fix. It exists to sit BEFORE
-those matchers (or before a plain moveToXY(keepRoute=0) call), so the
+FIlter smooths the raw (x, y) track: state = [pos, vel] per axis, predicted forward each
+step and corrected against the new GPS fix. It exists to sit before
+map matchers (or before a plain moveToXY(keepRoute=0) call), so the
 position/heading/speed handed downstream is less jittery than the raw
-phone reading -- see the "no filtering anywhere in main" gap noted for
-this project.
+phone reading
 
 Input/output coordinates are SUMO *network* (x, y) in metres, same as
 the map matchers -- from traci.simulation.convertGeo(lon, lat,
@@ -37,7 +34,7 @@ this project's 2026-03-11-17-20-46 map). If a net was imported with a
 different projection this field will be rotated -- ignore it and use
 the phone's own course_deg in that case; it has no effect on x/y.
 
-NOTE on integration: the natural call site is in live_phone_to_sumo.py,
+NOTE on integration: this function should be called in live_phone_to_sumo.py,
 right after convertGeo() and before moveToXY() -- filter the raw (x, y)
 there and pass the filtered values (and optionally filtered speed) into
 moveToXY/setSpeed instead of the raw ones.
@@ -189,58 +186,3 @@ class KalmanFilter:
             "course_deg": math.degrees(math.atan2(fvx, fvy)) % 360.0,
             "sigma": sigma,
         }
-
-
-if __name__ == "__main__":
-    # Self-test: no SUMO, no phone, no server -- just synthetic noisy data.
-    # Run with `python kalman_filter.py`. Demonstrates two things a live
-    # ride would otherwise be needed to check:
-    #   1. Under steady GPS noise, filtered RMS error is lower than raw.
-    #   2. A single large outlier fix (simulated multipath) is damped
-    #      instead of being followed exactly.
-    import random
-
-    random.seed(42)  # matches this project's convention (build.bat, etc.)
-
-    kf = KalmanFilter()
-
-    dt = 1.0
-    true_speed = 4.0  # m/s, roughly bike pace
-    gps_noise_std = 4.07
-    n_steps = 60
-    outlier_step = 30
-    outlier_offset = 40.0  # metres -- a bad multipath-style jump
-
-    raw_sq_err = 0.0
-    filt_sq_err = 0.0
-
-    true_x, true_y = 0.0, 0.0
-    for i in range(n_steps):
-        true_x += true_speed * dt
-        # true_y stays 0: straight-line motion along x
-
-        noisy_x = true_x + random.gauss(0.0, gps_noise_std)
-        noisy_y = true_y + random.gauss(0.0, gps_noise_std)
-        if i == outlier_step:
-            noisy_x += outlier_offset
-
-        result = kf.update(noisy_x, noisy_y, dt, accuracy_m=gps_noise_std)
-
-        raw_sq_err += (noisy_x - true_x) ** 2 + (noisy_y - true_y) ** 2
-        filt_sq_err += (result["x"] - true_x) ** 2 + (result["y"] - true_y) ** 2
-
-        tag = "  <-- outlier fix" if i == outlier_step else ""
-        print(
-            f"step {i:2d}: true=({true_x:7.2f},{true_y:6.2f})  "
-            f"raw=({noisy_x:7.2f},{noisy_y:6.2f})  "
-            f"filtered=({result['x']:7.2f},{result['y']:6.2f})  "
-            f"speed={result['speed_mps']:.2f} m/s{tag}"
-        )
-
-    raw_rms = math.sqrt(raw_sq_err / n_steps)
-    filt_rms = math.sqrt(filt_sq_err / n_steps)
-    print()
-    print(f"raw RMS error:      {raw_rms:.2f} m")
-    print(f"filtered RMS error: {filt_rms:.2f} m")
-    assert filt_rms < raw_rms, "filter should reduce RMS error vs raw GPS"
-    print("OK: filter reduced RMS error and damped the injected outlier.")
