@@ -13,8 +13,8 @@ launch, either as a command-line flag or from an interactive menu:
 Methods:
     native  -- SUMO's own moveToXY snapping (the geometric baseline)
     topo    -- TopologicalMatcher   (topological.py)
-    fuzzy   -- FuzzyMatcher         (fuzzy.py)
-    hmm     -- HMMMatcher           (hmm.py)
+    fuzzy   -- FuzzyMatcher         (FuzzyLogic.py)
+    hmm     -- HMMMatcher           (HMM.py)
     st      -- STMatcher            (STMatching.py)
 
 The loop itself does three jobs, unchanged from the single-method
@@ -245,6 +245,7 @@ MATCH_PARAMS = set()  # parameter names the active matcher's match() accepts
 KALMAN = None         # optional pre-filter instance, or None
 CSV_WRITER = None     # csv.writer for the run log, or None
 CSV_FILE = None       # the underlying file handle, closed on shutdown
+USED_KWARGS = {}      # constructor kwargs the matcher actually accepted
 _LAST_FIX_TIME = None # epoch seconds of the previous fix, for the Kalman dt
 
 
@@ -420,8 +421,9 @@ def build_matcher(method_key, net_file):
     # accepted names here lets the live loop pass one uniform set of
     # arguments and have the irrelevant ones dropped, instead of the caller
     # needing a branch per method.
-    global MATCH_PARAMS
+    global MATCH_PARAMS, USED_KWARGS
     MATCH_PARAMS = set(inspect.signature(cls.match).parameters)
+    USED_KWARGS = kwargs
 
     print(f"[INFO] Loading network into {cfg['cls']}...")
     return cls(net_file, **kwargs)
@@ -718,12 +720,34 @@ def parse_course_deg(course_deg_raw):
 
 
 def _fmt(value, spec=".3f"):
-    """Format a float for the log line, or '--' if it's None."""
-    # Score components are legitimately None on the first fix of a route
-    # and whenever a Viterbi chain restarts, so the logger has to
-    # tolerate it. None ("not applicable") and 0.0 ("scored zero") are
-    # genuinely different and must not be collapsed.
-    return format(value, spec) if value is not None else "--"
+    """
+    Format one log value: floats to `spec`, anything else as-is.
+
+    Score components are legitimately None on the first fix of a route and
+    whenever a Viterbi chain restarts, so the logger has to tolerate it.
+    None ("not applicable") and 0.0 ("scored zero") are genuinely different
+    and must not be collapsed.
+
+    Not every component is numeric, either. FuzzyMatcher reports a "mode"
+    string ("following" / "entering_pending" / "confirmed") alongside its
+    firing strengths, and HMMMatcher reports an integer candidate count.
+    Applying a float format code to those raises ValueError/TypeError, and
+    this function is called on the console-line path OUTSIDE the matcher's
+    try/except -- so an unformattable component used to take down the whole
+    run rather than producing an ugly log line. Non-floats are passed
+    straight through instead.
+    """
+    if value is None:
+        return "--"
+    # bool is a subclass of int; print it as True/False, not 1.000.
+    if isinstance(value, bool):
+        return str(value)
+    if isinstance(value, (int, float)):
+        try:
+            return format(value, spec)
+        except (ValueError, TypeError):
+            return str(value)
+    return str(value)
 
 
 def _fmt_components(comps):
@@ -740,7 +764,7 @@ def _fmt_components(comps):
     return " ".join(f"{k}={_fmt(v)}" for k, v in comps.items())
 
 
-def native_match(x, y, lon, lat):
+def native_match(x, y):
     """
     Baseline "matcher": ask SUMO which edge this point is on and let
     moveToXY do its own snapping.
@@ -753,9 +777,15 @@ def native_match(x, y, lon, lat):
 
     convertRoad is used only to supply an edge id for the call; it is the
     same nearest-edge projection described by equation (3) in the paper.
+
+    It is called on the (possibly Kalman-filtered) NETWORK coordinates with
+    isGeo=False, not on the raw lat/lon. Using the raw geo point here would
+    mean a --kalman native run looked up its edge from the unfiltered
+    position while being placed at the filtered one, which is a different
+    pipeline from every other method's and would not be comparable.
     """
     try:
-        edge_id, pos, lane_index = traci.simulation.convertRoad(lon, lat, isGeo=True)
+        edge_id, pos, lane_index = traci.simulation.convertRoad(x, y, isGeo=False)
     except traci.TraCIException as e:
         print(f"[WARN] convertRoad failed: {e}")
         return None
@@ -810,6 +840,18 @@ def move_vehicle_to_phone_position(lat, lon, speed_mps, course_deg_raw,
     # and covariance are in metres, which is what the constant-velocity
     # model in equations (7)-(8) assumes. Runs identically ahead of all
     # five methods, which is the point of it being a separate stage.
+    # angle_to_use is what we hand to moveToXY (may be INVALID_DOUBLE_VALUE).
+    # Computed BEFORE the filter runs: the Kalman filter seeds its initial
+    # velocity from the heading, so it must see a sanitised value (or None)
+    # rather than the phone's "no heading available" sentinel.
+    angle_to_use = parse_course_deg(course_deg_raw)
+
+    # The matchers and the filter want a plain float or None for heading,
+    # so translate SUMO's INVALID sentinel back into None.
+    course_for_match = angle_to_use
+    if course_for_match == traci.constants.INVALID_DOUBLE_VALUE:
+        course_for_match = None
+
     filt_x, filt_y = x, y
     if KALMAN is not None:
         # Real elapsed time between phone fixes where both timestamps are
@@ -825,7 +867,7 @@ def move_vehicle_to_phone_position(lat, lon, speed_mps, course_deg_raw,
             kf = KALMAN.update(
                 x, y, dt,
                 speed_mps=speed_mps,
-                course_deg=course_deg_raw,
+                course_deg=course_for_match,
                 accuracy_m=accuracy_m,
             )
             filt_x, filt_y = kf["x"], kf["y"]
@@ -838,15 +880,6 @@ def move_vehicle_to_phone_position(lat, lon, speed_mps, course_deg_raw,
     if fix_time is not None:
         _LAST_FIX_TIME = fix_time
 
-    # angle_to_use is what we hand to moveToXY (may be INVALID_DOUBLE_VALUE).
-    angle_to_use = parse_course_deg(course_deg_raw)
-
-    # The matchers want a plain float or None for heading, so translate
-    # SUMO's INVALID sentinel back into None before calling them.
-    course_for_match = angle_to_use
-    if course_for_match == traci.constants.INVALID_DOUBLE_VALUE:
-        course_for_match = None
-
     # ---- Run the selected matcher -------------------------------------
     # match_ms is the per-fix matching latency. ST-Matching and the HMM run
     # Viterbi over a window with shortest-path queries per candidate pair,
@@ -855,7 +888,7 @@ def move_vehicle_to_phone_position(lat, lon, speed_mps, course_deg_raw,
     match_start = time.perf_counter()
     try:
         if MATCHER is None:
-            result = native_match(filt_x, filt_y, lon, lat)
+            result = native_match(filt_x, filt_y)
         else:
             # Offer every optional input; keep only the ones this matcher's
             # match() actually declares. Dropping `timestamp` for the
@@ -895,6 +928,14 @@ def move_vehicle_to_phone_position(lat, lon, speed_mps, course_deg_raw,
     # avoids the sumo-gui freeze).
     keep_route = METHOD_CFG["keep_route"]
 
+    # NOTE: do NOT call setRoute() here. SUMO requires a replacement route to
+    # contain the vehicle's CURRENT edge, so setRoute(VEHICLE_ID, [edge_id])
+    # fails with "current edge ... not found in new route" on every fix after
+    # the bike has moved off its spawn edge, and additionally trips a
+    # "prohibits" warning whenever the matched edge disallows bicycles. It is
+    # also unnecessary: keepRoute bit 2 (exact placement) means the placement
+    # does not consult the route at all, and bit 4 bypasses the lane
+    # permission check. The dummy spawn route is deliberately left stale.
     try:
         traci.vehicle.moveToXY(
             vehID=VEHICLE_ID,
@@ -968,7 +1009,12 @@ def move_vehicle_to_phone_position(lat, lon, speed_mps, course_deg_raw,
     # the bike. Those two diverging means keepRoute overrode the matcher.
     act_str = (f"({actual_x:.1f}, {actual_y:.1f})"
                if actual_x is not None else "(N/A)")
-    comp_str = _fmt_components(result.get("components"))
+    # Defensive: the bike has already been moved successfully by this point,
+    # so nothing in the reporting below is worth ending the run over.
+    try:
+        comp_str = _fmt_components(result.get("components"))
+    except Exception as e:
+        comp_str = f"<components unprintable: {e}>"
     win = result.get("window_len")
 
     print(
@@ -1075,7 +1121,7 @@ def main():
     else:
         # Echo the settings that actually reached the constructor, so the
         # console records the exact configuration of this run.
-        shown = ", ".join(f"{k}={v}" for k, v in METHOD_CFG["kwargs"].items())
+        shown = ", ".join(f"{k}={v}" for k, v in USED_KWARGS.items())
         print(f"[INFO] {type(MATCHER).__name__} ready ({shown}).")
 
     # Optional pre-filter, built after the matcher so a missing kalman.py
