@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- generated on 2026-08-25 19:46:35.184884 by Eclipse SUMO osmWebWizard.py v1_27_1+0000-7717f2379d9
+  options: 
+-->
+
+<additional xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/additional_file.xsd">
+   <edgeData id="wizard_example" period="3600" file="edgeData.xml"/>
+</additional>

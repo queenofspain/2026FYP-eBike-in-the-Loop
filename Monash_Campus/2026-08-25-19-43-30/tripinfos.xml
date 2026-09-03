@@ -1,20 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- generated on 2026-03-11T17:21:12.859895+10:00 by Eclipse SUMO sumo 1.26.0
--->
-
+<!-- generated on 2026-09-03T10:47:37.534790+10:00 by Eclipse SUMO GUI 1.27.1
 <sumoConfiguration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/sumoConfiguration.xsd">
 
     <input>
-        <!-- <net-file value="osm.net.xml.gz"/> -->
-        <net-file value="editedosm3.net.xml.gz"/>
-        <route-files value="full_campus_v2.rou.xml, test_route_1.rou.xml"/>
-        <additional-files value="osm.poly.xml.gz,osm_stops.add.xml,output.add.xml"/>
+        <net-file value="osm.net.xml"/>
+        <route-files value="full_campus_v3.rou.xml"/>
+        <additional-files value="osm.poly.xml.gz,output.add.xml"/>
     </input>
 
     <output>
         <tripinfo-output value="tripinfos.xml"/>
-        <stop-output value="stopinfos.xml"/>
         <statistic-output value="stats.xml"/>
     </output>
 
@@ -39,3 +35,8 @@
     </gui_only>
 
 </sumoConfiguration>
+-->
+
+<tripinfos xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/tripinfo_file.xsd">
+    <tripinfo id="simBike" depart="0.00" departLane="-1272942443#2_0" departPos="1.70" departSpeed="2.78" departDelay="0.00" arrival="993.00" arrivalLane="-1272942443#3_0" arrivalPos="7.11" arrivalSpeed="2.63" duration="993.00" routeLength="5740.92" waitingTime="33.00" waitingCount="1" stopTime="0.00" timeLoss="167.62" rerouteNo="0" devices="tripinfo_simBike" vType="bike" speedFactor="1.06" vaporized=""/>
+</tripinfos>

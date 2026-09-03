@@ -1,0 +1,16 @@
+<routes>
+
+    <!-- Bicycle vehicle type -->
+    <vType id="bike" vClass="bicycle" maxSpeed="12"/>
+
+    <!-- Your predefined route -->
+    <route id="block_route"
+    edges="-1272942443#2 -1272942443#1 -1272942443#0 1209653411 1209653410 1147258794#0 1147258794#2 5094886#0 5094886#1 5094886#2 985461732 -10539447#1 -10539447#0 -1272942442#4 -1272942442#3 -250248456 -250248456"/>
+
+    <!-- Reference vehicle that follows the route -->
+    <vehicle id="refBike"
+             type="bike"
+             route="block_route"
+             depart="0"/>
+
+</routes>
