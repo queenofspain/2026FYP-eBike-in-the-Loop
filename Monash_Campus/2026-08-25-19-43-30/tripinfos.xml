@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- generated on 2026-08-30T17:10:40.286477+10:00 by Eclipse SUMO GUI 1.27.1
+<!-- generated on 2026-09-03T10:29:13.265906+10:00 by Eclipse SUMO GUI 1.27.1
 <sumoConfiguration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/sumoConfiguration.xsd">
 
     <input>
         <net-file value="osm.net.xml"/>
-        <route-files value="full_campus_v2.rou.xml"/>
+        <route-files value="full_campus_v3.rou.xml"/>
         <additional-files value="osm.poly.xml.gz,output.add.xml"/>
     </input>
 
@@ -38,4 +38,5 @@
 -->
 
 <tripinfos xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/tripinfo_file.xsd">
+    <tripinfo id="simBike" depart="0.00" departLane="-1272942443#2_0" departPos="1.70" departSpeed="2.78" departDelay="0.00" arrival="993.00" arrivalLane="-1272942443#3_0" arrivalPos="7.11" arrivalSpeed="2.63" duration="993.00" routeLength="5740.92" waitingTime="33.00" waitingCount="1" stopTime="0.00" timeLoss="167.62" rerouteNo="0" devices="tripinfo_simBike" vType="bike" speedFactor="1.06" vaporized=""/>
 </tripinfos>
