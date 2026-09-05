@@ -10,7 +10,7 @@ set "NGROK_DOMAIN=outward-expanse-result.ngrok-free.dev"
 set "NGROK_AUTH=bike:bikebike"
 set "FLASK_PORT=5000"
 @REM set "SUMO_SCRIPT=two_bikes.py"
-set "SUMO_SCRIPT=EDITED_live_phone_to_sumo.py"
+set "SUMO_SCRIPT=live_phone_to_sumo.py"
 set "SERVER_SCRIPT=server.py"
 REM ----------------------------
 

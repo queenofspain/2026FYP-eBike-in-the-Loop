@@ -81,7 +81,7 @@ from datetime import datetime
 
 # ---------- USER SETTINGS ----------
 # Path to the SUMO scenario config, relative to this script's own directory.
-SUMO_CFG = r"2026-03-11-17-20-46/osm.sumocfg"
+SUMO_CFG = r"2026-08-25-19-43-30/osm.sumocfg"
 # Endpoint on the Flask server that returns the most recent phone fix.
 FLASK_LATEST_URL = "http://localhost:5000/latest"
 

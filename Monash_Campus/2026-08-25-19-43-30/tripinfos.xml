@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- generated on 2026-09-03T10:47:37.534790+10:00 by Eclipse SUMO GUI 1.27.1
+<!-- generated on 2026-09-03T14:40:50.784020+10:00 by Eclipse SUMO sumo 1.27.1
 <sumoConfiguration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/sumoConfiguration.xsd">
 
     <input>
-        <net-file value="osm.net.xml"/>
-        <route-files value="full_campus_v3.rou.xml"/>
-        <additional-files value="osm.poly.xml.gz,output.add.xml"/>
+        <net-file value="c:\Uni\Final Year Project\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-08-25-19-43-30\osm.net.xml"/>
+        <route-files value="c:\Uni\Final Year Project\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-08-25-19-43-30\full_campus_v3.rou.xml"/>
+        <additional-files value="c:\Uni\Final Year Project\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-08-25-19-43-30\osm.poly.xml.gz,c:\Uni\Final Year Project\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-08-25-19-43-30\output.add.xml"/>
     </input>
 
     <output>
-        <tripinfo-output value="tripinfos.xml"/>
-        <statistic-output value="stats.xml"/>
+        <tripinfo-output value="c:\Uni\Final Year Project\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-08-25-19-43-30\tripinfos.xml"/>
+        <statistic-output value="c:\Uni\Final Year Project\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-08-25-19-43-30\stats.xml"/>
     </output>
 
     <processing>
@@ -30,13 +30,17 @@
         <no-step-log value="true"/>
     </report>
 
+    <traci_server>
+        <remote-port value="56099"/>
+    </traci_server>
+
     <gui_only>
-        <gui-settings-file value="osm.view.xml"/>
+        <gui-settings-file value="c:\Uni\Final Year Project\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-08-25-19-43-30\osm.view.xml"/>
+        <start value="true"/>
     </gui_only>
 
 </sumoConfiguration>
 -->
 
 <tripinfos xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/tripinfo_file.xsd">
-    <tripinfo id="simBike" depart="0.00" departLane="-1272942443#2_0" departPos="1.70" departSpeed="2.78" departDelay="0.00" arrival="993.00" arrivalLane="-1272942443#3_0" arrivalPos="7.11" arrivalSpeed="2.63" duration="993.00" routeLength="5740.92" waitingTime="33.00" waitingCount="1" stopTime="0.00" timeLoss="167.62" rerouteNo="0" devices="tripinfo_simBike" vType="bike" speedFactor="1.06" vaporized=""/>
 </tripinfos>
