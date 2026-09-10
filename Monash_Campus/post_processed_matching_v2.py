@@ -67,6 +67,17 @@ HMM's temporal terms, the Kalman filter's dt). Without one, everything
 still runs, just with a nominal fixed dt (NOMINAL_DT) standing in for
 elapsed time between fixes -- the same graceful-degradation behaviour
 the live script has when a phone fix has no parseable timestamp.
+
+DERIVED SPEED: some recorded datasets (e.g. test_old_data.csv) have no
+speed column at all. A genuinely missing reading is now kept as None,
+never silently defaulted to 0.0 -- FuzzyMatcher in particular treats a
+real 0.0 as "the vehicle is stationary" and freezes on its current edge,
+so a fake 0.0 for an entire unmatched-speed dataset was permanently
+freezing it on whichever edge the first point happened to match. Instead,
+process_point() estimates speed from the distance and elapsed time to the
+previous point (derive_speed_mps()) whenever a row's own speed is
+unavailable, so every matcher sees a real (if approximate) speed estimate
+rather than "no speed field" being misread as "definitely not moving".
 ----------------------------------------------------------------------
 """
 
@@ -234,6 +245,7 @@ MATCH_PARAMS = set()
 KALMAN = None
 USED_KWARGS = {}
 _LAST_FIX_TIME = None
+_PREV_RAW_XY = None    # previous point's converted (x, y), for derive_speed_mps
 
 
 def resolve_method(name):
@@ -525,6 +537,29 @@ def snap_to_lane_geometry(net, edge_id, lane_index, lane_pos):
         return None
 
 
+def derive_speed_mps(prev_xy, prev_time, x, y, fix_time):
+    """
+    Estimate speed over ground from the distance to the previous point and
+    the elapsed time between fixes -- the same technique a GPS receiver
+    with no separate Doppler-based speed reading uses internally. Fills the
+    gap for datasets (e.g. test_old_data.csv) that record position and a
+    timestamp but no speed of their own.
+
+    Returns None if there is no previous point to compare against, or if
+    the elapsed time isn't usable. Falls back to NOMINAL_DT when neither fix
+    has a parseable timestamp, the same graceful-degradation the Kalman
+    filter's own dt already uses -- so a dataset with real timestamps (like
+    test_old_data.csv's sim_time) gets a genuine dt, and one without still
+    gets a reasonable estimate rather than none at all.
+    """
+    if prev_xy is None:
+        return None
+    dt = (fix_time - prev_time) if (fix_time is not None and prev_time is not None) else NOMINAL_DT
+    if dt <= 0:
+        return None
+    return math.hypot(x - prev_xy[0], y - prev_xy[1]) / dt
+
+
 def process_point(net, lat, lon, speed_mps, course_deg_raw, fix_time, accuracy_m):
     """
     Convert one recorded GPS point to SUMO coordinates, run the selected
@@ -535,8 +570,13 @@ def process_point(net, lat, lon, speed_mps, course_deg_raw, fix_time, accuracy_m
     vehicle taken out: no spawning, no moveToXY, no reading back a
     simulated position, because there's no animated bike to place -- only
     the geometry of "where does this point match to" is wanted here.
+
+    If the input row has no speed of its own (speed_mps is None), it is
+    estimated here from the previous point via derive_speed_mps() before
+    anything else runs, so the Kalman filter and every matcher see a real
+    speed estimate instead of silently defaulting to "stationary".
     """
-    global _LAST_FIX_TIME
+    global _LAST_FIX_TIME, _PREV_RAW_XY
 
     row = {
         "matched": False,
@@ -544,6 +584,7 @@ def process_point(net, lat, lon, speed_mps, course_deg_raw, fix_time, accuracy_m
         "lane_index": "",
         "lane_pos": "",
         "is_internal_edge": False,
+        "speed_mps": speed_mps,
         "raw_x": "",
         "raw_y": "",
         "filt_x": "",
@@ -570,6 +611,14 @@ def process_point(net, lat, lon, speed_mps, course_deg_raw, fix_time, accuracy_m
         return row
 
     row["raw_x"], row["raw_y"] = x, y
+
+    # No speed of its own: estimate it from the previous point before the
+    # Kalman filter or any matcher sees it, so a dataset with no speed
+    # column doesn't read as "the vehicle is stationary" (see the module
+    # docstring's note on derived speed, and derive_speed_mps() itself).
+    if speed_mps is None:
+        speed_mps = derive_speed_mps(_PREV_RAW_XY, _LAST_FIX_TIME, x, y, fix_time)
+        row["speed_mps"] = speed_mps
 
     # Heading, sanitised once up front. Computed before the Kalman filter
     # runs since the filter seeds its initial velocity from it.
@@ -600,6 +649,10 @@ def process_point(net, lat, lon, speed_mps, course_deg_raw, fix_time, accuracy_m
 
     if fix_time is not None:
         _LAST_FIX_TIME = fix_time
+    # Tracked from the raw (unfiltered) point, not the Kalman output, so a
+    # derived speed reflects the actual GPS trajectory rather than being
+    # smoothed twice.
+    _PREV_RAW_XY = (x, y)
 
     row["filt_x"], row["filt_y"] = filt_x, filt_y
 
@@ -713,7 +766,8 @@ def load_gps_rows(csv_path, lat_col, lon_col, timestamp_col, speed_col,
                   f"will use a nominal dt of {NOMINAL_DT}s.")
         if speed_col and not have_speed:
             print(f"[INFO] Speed column '{speed_col}' not found; speed will "
-                  f"be treated as 0 for every point.")
+                  f"be derived from consecutive GPS points and elapsed time "
+                  f"where possible (see derive_speed_mps), else left unknown.")
         if course_col and not have_course:
             print(f"[INFO] Course column '{course_col}' not found; heading "
                   f"will be treated as unavailable for every point.")
@@ -733,9 +787,14 @@ def load_gps_rows(csv_path, lat_col, lon_col, timestamp_col, speed_col,
 
             try:
                 speed_raw = raw_row.get(speed_col) if have_speed else None
-                speed_mps = float(speed_raw) if speed_raw not in (None, "") else 0.0
+                # None (not 0.0) when genuinely absent -- a missing reading
+                # is not the same claim as "the vehicle is stationary", and
+                # FuzzyMatcher in particular treats a real 0.0 as licence to
+                # freeze on the current edge. process_point() fills this in
+                # from consecutive points when it can (derive_speed_mps).
+                speed_mps = float(speed_raw) if speed_raw not in (None, "") else None
             except (TypeError, ValueError):
-                speed_mps = 0.0
+                speed_mps = None
 
             course_raw = raw_row.get(course_col) if have_course else None
             course_deg = None if course_raw in (None, "") else course_raw
@@ -939,7 +998,10 @@ def main():
                 "components": _fmt_components(res["components"]),
                 "window_len": res["window_len"],
                 "match_ms": res["match_ms"],
-                "phone_speed_mps": row["speed_mps"],
+                # res["speed_mps"], not row["speed_mps"]: reports what was
+                # actually fed to the matcher, including any value filled
+                # in by derive_speed_mps() when the CSV had none of its own.
+                "phone_speed_mps": res["speed_mps"],
                 "phone_course_deg": row["course_deg"],
                 "accuracy_m": row["accuracy_m"],
                 "unmatched_reason": res["unmatched_reason"],
