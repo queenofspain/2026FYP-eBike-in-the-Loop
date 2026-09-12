@@ -1,0 +1,1 @@
+wall_time,phone_timestamp,method,kalman,lat,lon,raw_x,raw_y,filt_x,filt_y,match_x,match_y,actual_x,actual_y,edge_id,raw_dist,score,correction_m,match_ms,phone_speed_mps,sumo_speed_mps,phone_course_deg,accuracy_m

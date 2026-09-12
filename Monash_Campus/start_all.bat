@@ -12,6 +12,8 @@ set "FLASK_PORT=5000"
 @REM set "SUMO_SCRIPT=two_bikes.py"
 set "SUMO_SCRIPT=live_phone_to_sumo.py"
 set "SERVER_SCRIPT=server.py"
+REM Extra args passed to SUMO_SCRIPT, e.g. "--log" or "--method st --log"
+set "SUMO_ARGS=--log"
 REM ----------------------------
 
 cd /d "%PROJECT_DIR%"
@@ -39,8 +41,8 @@ echo ============================================================
 echo.
 pause
 
-echo [launcher] Starting SUMO bridge script...
-start "SUMO Bridge" cmd /k "cd /d %PROJECT_DIR% && python %SUMO_SCRIPT%"
+echo [launcher] Starting SUMO bridge script (%SUMO_ARGS%)...
+start "SUMO Bridge" cmd /k "cd /d %PROJECT_DIR% && python %SUMO_SCRIPT% %SUMO_ARGS%"
 
 echo.
 echo [launcher] All processes launched.
