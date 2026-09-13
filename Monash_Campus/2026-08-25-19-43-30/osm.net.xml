@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- generated on 2026-09-03T10:27:35.751858+10:00 by Eclipse SUMO netedit 1.27.1
+<!-- generated on 2026-09-13T13:22:49.868340+10:00 by Eclipse SUMO netedit 1.27.1
 <neteditConfiguration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/neteditConfiguration.xsd">
 
     <input>
@@ -60503,7 +60503,7 @@
         <request index="0" response="0000" foes="1000" cont="0"/>
         <request index="1" response="0100" foes="0100" cont="0"/>
         <request index="2" response="0000" foes="0010" cont="0"/>
-        <request index="3" response="0001" foes="0001" cont="0"/>
+        <request index="3" response="0000" foes="0001" cont="0"/>
     </junction>
     <junction id="13200192071" type="dead_end" x="2280.00" y="1478.65" incLanes="997113364_0" intLanes="" shape="2280.63,1477.87 2279.37,1479.43 2280.63,1477.87"/>
     <junction id="13253211113" type="dead_end" x="1311.30" y="1004.24" incLanes="1460042468#1_0" intLanes="" shape="1312.71,1001.94 1313.90,1003.54 1313.34,1004.17 1313.23,1004.51 1313.24,1004.87 1313.37,1005.24 1313.61,1005.63 1312.01,1006.84 1311.35,1006.24 1310.99,1006.11 1310.61,1006.09 1310.22,1006.19 1309.81,1006.41 1308.72,1004.73"/>
@@ -63658,7 +63658,7 @@
     </junction>
     <junction id="4435804784" type="right_before_left" x="2200.21" y="1204.64" incLanes="-116895895#12_0 -48114467_0 116895895#11_0" intLanes=":4435804784_0_0 :4435804784_1_0 :4435804784_2_0 :4435804784_3_0 :4435804784_4_0 :4435804784_5_0 :4435804784_6_0 :4435804784_7_0 :4435804784_8_0" shape="2204.66,1210.75 2200.92,1212.17 2200.58,1211.55 2200.41,1211.47 2200.25,1211.55 2200.10,1211.80 2199.94,1212.19 2196.13,1211.00 2197.33,1208.16 2197.80,1207.12 2198.07,1206.10 2198.02,1204.89 2197.55,1203.31 2201.29,1201.87">
         <request index="0" response="000000000" foes="100010000" cont="0"/>
-        <request index="1" response="011000000" foes="011110000" cont="0"/>
+        <request index="1" response="000000000" foes="011110000" cont="0"/>
         <request index="2" response="010001000" foes="010001000" cont="0"/>
         <request index="3" response="000000000" foes="010000100" cont="0"/>
         <request index="4" response="000000011" foes="110000011" cont="0"/>
@@ -72955,7 +72955,7 @@
     <connection from="-116895895#11" to="-116895895#10" fromLane="0" toLane="0" via=":611527812_0_0" dir="s" state="M"/>
     <connection from="-116895895#11" to="116895895#11" fromLane="0" toLane="0" via=":611527812_1_0" dir="T" state="m"/>
     <connection from="-116895895#12" to="-116895895#11" fromLane="0" toLane="0" via=":4435804784_0_0" dir="s" state="M"/>
-    <connection from="-116895895#12" to="48114467" fromLane="0" toLane="0" via=":4435804784_1_0" dir="r" state="="/>
+    <connection from="-116895895#12" to="48114467" fromLane="0" toLane="0" pass="1" via=":4435804784_1_0" dir="r" state="M"/>
     <connection from="-116895895#12" to="116895895#12" fromLane="0" toLane="0" via=":4435804784_2_0" dir="T" state="="/>
     <connection from="-116895895#2" to="-116895895#1" fromLane="0" toLane="0" via=":4435804773_0_0" dir="s" state="M"/>
     <connection from="-116895895#2" to="-446272721" fromLane="0" toLane="0" via=":4435804773_1_0" dir="r" state="="/>
@@ -76545,7 +76545,7 @@
     <connection from="116895895#11" to="116895895#12" fromLane="0" toLane="0" pass="1" via=":4435804784_7_0" dir="s" state="M"/>
     <connection from="116895895#11" to="-116895895#11" fromLane="0" toLane="0" via=":4435804784_8_0" dir="T" state="="/>
     <connection from="116895895#12" to="116895895#13" fromLane="0" toLane="0" via=":1316712969_2_0" dir="s" state="M"/>
-    <connection from="116895895#12" to="-116895895#12" fromLane="0" toLane="0" via=":1316712969_3_0" dir="T" state="="/>
+    <connection from="116895895#12" to="-116895895#12" fromLane="0" toLane="0" pass="1" via=":1316712969_3_0" dir="T" state="M"/>
     <connection from="116895895#13" to="45070617#1" fromLane="0" toLane="0" via=":9207197644_2_0" dir="s" state="M"/>
     <connection from="116895895#13" to="-45070617#0" fromLane="0" toLane="0" via=":9207197644_3_0" dir="T" state="="/>
     <connection from="116895895#2" to="446272723#0" fromLane="0" toLane="0" via=":571490240_4_0" dir="l" state="M"/>

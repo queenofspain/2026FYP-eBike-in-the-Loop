@@ -1055,6 +1055,7 @@ def move_vehicle_to_phone_position(lat, lon, speed_mps, course_deg_raw,
         CSV_FILE.flush()
 
 
+
 def parse_args():
     """Command-line interface. Everything here has a sensible default."""
     p = argparse.ArgumentParser(

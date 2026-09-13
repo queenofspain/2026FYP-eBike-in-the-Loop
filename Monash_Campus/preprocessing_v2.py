@@ -6,8 +6,8 @@ import numpy as np
 import traci
 import sumolib
 
-NET_FILE = "Monash_Campus/2026-03-11-17-20-46/editedosm3.net.xml"
-GPS_FILE = "Monash_Campus/Data/gps_old.csv"
+NET_FILE = "Monash_Campus/2026-08-25-19-43-30/osm.net.xml"
+GPS_FILE = "Monash_Campus/Data/edited_100926.csv"
 GROUND_TRUTH_FILE = "Monash_Campus/Data/latlon_ground_truth_old.csv"
 
 OUTPUT_FILE = "Monash_Campus/Data/gps_data_processed.csv"
