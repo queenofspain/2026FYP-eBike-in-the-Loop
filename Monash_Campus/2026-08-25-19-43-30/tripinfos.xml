@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- generated on 2026-09-10T11:07:10.123848+10:00 by Eclipse SUMO GUI 1.27.1
+<!-- generated on 2026-09-15T21:03:08.918226+10:00 by Eclipse SUMO sumo 1.27.1
 <sumoConfiguration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/sumoConfiguration.xsd">
 
     <input>
@@ -13,11 +13,6 @@
         <tripinfo-output value="C:\Uni\Final Year Project\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-08-25-19-43-30\tripinfos.xml"/>
         <statistic-output value="C:\Uni\Final Year Project\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-08-25-19-43-30\stats.xml"/>
     </output>
-
-    <time>
-        <end value="1000000"/>
-        <step-length value="1.0"/>
-    </time>
 
     <processing>
         <ignore-route-errors value="true"/>
@@ -36,13 +31,12 @@
     </report>
 
     <traci_server>
-        <remote-port value="50190"/>
+        <remote-port value="65093"/>
     </traci_server>
 
     <gui_only>
         <gui-settings-file value="C:\Uni\Final Year Project\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-08-25-19-43-30\osm.view.xml"/>
         <start value="true"/>
-        <delay value="1000"/>
     </gui_only>
 
 </sumoConfiguration>

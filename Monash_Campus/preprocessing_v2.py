@@ -8,7 +8,7 @@ import sumolib
 
 NET_FILE = "Monash_Campus/2026-08-25-19-43-30/osm.net.xml"
 GPS_FILE = "Monash_Campus/Data/edited_100926.csv"
-GROUND_TRUTH_FILE = "Monash_Campus/Data/latlon_ground_truth_old.csv"
+GROUND_TRUTH_FILE = "Monash_Campus/Data/ground_truth_100926.csv"
 
 OUTPUT_FILE = "Monash_Campus/Data/gps_data_processed.csv"
 
@@ -16,29 +16,29 @@ gps = pd.read_csv(GPS_FILE)
 ground_truth = pd.read_csv(GROUND_TRUTH_FILE)
 
 gps = gps.dropna(subset=[
-    "gps_x",
-    "gps_y"
+    "raw_x",
+    "raw_y"
 ])
 
-gps["gt_x"] = ground_truth["gt_x"].values
-gps["gt_y"] = ground_truth["gt_y"].values
+gps["actual_x"] = ground_truth["actual_x"].values
+gps["actual_y"] = ground_truth["actual_y"].values
 
 df = gps.copy()
 
 # Remove rows with missing coordinate data
 df = df.dropna(subset=[
-    "gps_x",
-    "gps_y",
-    "gt_x",
-    "gt_y"
+    "raw_x",
+    "raw_y",
+    "actual_x",
+    "actual_y"
 ]).copy()
 
 # ============================================================
 # Calculate positional error
 # ============================================================
 
-df["error_x"] = df["gps_x"] - df["gt_x"]
-df["error_y"] = df["gps_y"] - df["gt_y"]
+df["error_x"] = df["raw_x"] - df["actual_x"]
+df["error_y"] = df["raw_y"] - df["actual_y"]
 
 df["position_error"] = np.sqrt(
     df["error_x"]**2 +
@@ -59,8 +59,8 @@ previous_y = None
 
 for index, row in gps.iterrows():
 
-    x = row["gps_x"]
-    y = row["gps_y"]
+    x = row["raw_x"]
+    y = row["raw_y"]
 
     # Skip points with missing coordinates
     if pd.isna(x) or pd.isna(y):
