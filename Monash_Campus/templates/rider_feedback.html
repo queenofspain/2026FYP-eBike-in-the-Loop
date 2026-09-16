@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f8f3">
+  <title>Rider advice · eBike in the Loop</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='rider-feedback.css') }}">
+  <script defer src="{{ url_for('static', filename='rider-feedback.js') }}"></script>
+</head>
+<body>
+  <main>
+    <header class="page-header">
+      <div><h1>Rider advice<span class="brand-dot" aria-hidden="true">.</span></h1><p>Live GPS <span aria-hidden="true">/</span> SUMO road context</p></div>
+      <div class="connection" id="connection" data-state="idle"><span class="connection-dot" aria-hidden="true"></span><span id="status">Connecting</span></div>
+    </header>
+
+    <div class="ride-layout">
+      <section class="advice-panel" id="advicePanel" data-level="neutral" aria-labelledby="adviceLabel">
+        <div class="advice-label" id="adviceLabel"><span id="adviceIcon" aria-hidden="true">—</span> Current advice</div>
+        <div id="adviceLive" aria-live="polite" aria-atomic="true"><h2 id="adviceAction">Waiting for rider data</h2><p id="adviceReason">Start GPS tracking or a simulated ride.</p></div>
+        <div class="advice-footer"><span class="advice-indicator" aria-hidden="true"></span><span id="adviceSource">No current road data</span></div>
+      </section>
+      <aside class="motion-panel" aria-label="Current rider motion">
+        <div class="motion-metric"><h2>Current speed</h2><div class="measurement"><strong id="speed">—</strong><span>km/h</span></div></div>
+        <div class="motion-metric"><h2>Acceleration</h2><div class="measurement"><strong id="acceleration">—</strong><span>m/s²</span></div></div>
+        <div class="motion-metric"><h2>Heading</h2><div class="measurement"><strong id="heading">—</strong><span id="angle"></span></div></div>
+      </aside>
+      <section class="road-context" aria-label="Road conditions">
+        <article class="road-card"><h2>Road speed limit</h2><div class="road-value"><strong id="limit">—</strong><span>km/h</span></div><p id="limitDetail">Current road</p></article>
+        <article class="road-card"><h2>Upcoming intersection</h2><div class="road-value"><strong id="intersection">—</strong><span id="intersectionUnit"></span></div><p id="intersectionDetail">Waiting for road data</p></article>
+        <article class="road-card"><h2>Upcoming traffic light</h2><div class="road-value"><strong id="trafficLight">—</strong><span id="trafficLightUnit"></span></div><p id="trafficLightDetail">Waiting for road data</p><small class="signal-state" id="signalState" hidden><span id="signalDot" aria-hidden="true"></span><span id="signalText"></span></small></article>
+      </section>
+    </div>
+
+    <div class="ride-meta"><span id="sampleStatus">No current telemetry</span><span id="simulationTime"></span></div>
+    <section class="ride-controls" aria-label="Ride controls">
+      <div>
+        <div class="control-buttons"><button id="startGps" type="button">Start GPS tracking</button><button id="stopGps" type="button" disabled>Stop GPS</button></div>
+        <p class="tracking-status" id="gpsStatus" role="status">GPS is off. Use HTTPS on a phone and allow location access.</p>
+      </div>
+      <div>
+        <div class="control-buttons"><button id="startDemo" type="button">Start SUMO demo</button><button id="stopDemo" type="button" disabled>Stop demo</button></div>
+        <details id="setup"><summary>Demo duration</summary><div class="setup-fields"><label for="duration">Duration <span>(seconds)</span></label><input id="duration" type="number" value="120" min="10" max="900" step="1"></div></details>
+      </div>
+    </section>
+    <p id="error" role="alert" hidden></p>
+    <footer><p>Prototype advice based on the current matched SUMO road. Beyond an uncertain turn, road context is unavailable.</p><details id="diagnostics"><summary>Diagnostics</summary><p id="route">No current lane</p></details></footer>
+  </main>
+</body>
+</html>

@@ -1,0 +1,113 @@
+:root { font-family: 'Segoe UI', Arial, sans-serif; color:#172e32; background:#f2f4ef; font-synthesis:none; --muted:#596b6d; --line:#d8e1dc; }
+* { box-sizing:border-box; }
+body { margin:0; }
+/* Fluid sizing uses the available browser width, including a narrow app panel.
+   Text reflows rather than scaling the entire page or disabling browser zoom. */
+main { --page-gap:clamp(12px,1.4vw,22px); width:min(1440px,calc(100% - clamp(24px,5vw,96px))); margin:0 auto; padding:clamp(16px,3vh,36px) 0 max(16px,env(safe-area-inset-bottom)); }
+.page-header { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:clamp(16px,2.4vh,28px); }
+h1 { font-size:clamp(22px,1.4rem + .3vw,30px); letter-spacing:-1px; margin:0; font-weight:650; }
+.brand-dot { color:#318366; }
+.page-header p { margin:7px 0 0; color:var(--muted); font-size:13px; }
+.page-header p span { margin:0 7px; color:#8c9b96; }
+.connection { display:flex; align-items:center; gap:8px; font-size:12px; font-weight:600; padding:9px 13px; border:1px solid var(--line); border-radius:30px; background:#fafbf8; white-space:nowrap; }
+.connection-dot { width:7px; height:7px; background:#85938e; border-radius:50%; }
+.connection[data-state="running"] .connection-dot { background:#287556; }
+.connection[data-state="offline"] .connection-dot,.connection[data-state="error"] .connection-dot,.connection[data-state="stale"] .connection-dot { background:#b64928; }
+.ride-layout { display:grid; grid-template-columns:minmax(0,3fr) minmax(200px,1fr); gap:var(--page-gap); }
+.ride-layout > *, .road-context > *, .motion-panel > *, .ride-controls > * { min-width:0; }
+.advice-panel { --tone:#526669; --tint:#e7eeea; --rule:#bdcbc3; background:var(--tint); border:1px solid var(--rule); border-left:5px solid var(--tone); border-radius:16px; padding:clamp(20px,2.5vw,40px); min-height:clamp(260px,36svh,420px); display:flex; flex-direction:column; }
+.advice-panel[data-level="caution"] { --tone:#82500c; --tint:#fff3dd; --rule:#e8d8b6; }
+.advice-panel[data-level="warning"] { --tone:#993c23; --tint:#fff0e8; --rule:#ebcec0; }
+.advice-panel[data-level="good"] { --tone:#216348; --tint:#e7f2e9; --rule:#c8dfcf; }
+.advice-label { display:flex; align-items:center; gap:9px; text-transform:uppercase; letter-spacing:1.5px; font-size:11px; font-weight:700; color:var(--tone); }
+#adviceIcon { width:22px; height:22px; border:1px solid currentColor; display:inline-flex; align-items:center; justify-content:center; border-radius:50%; font-size:14px; }
+#adviceLive { margin:auto 0; padding:clamp(18px,2.4vh,32px) 0; }
+#adviceAction { color:var(--tone); font-size:clamp(2rem,1.1rem + 3.3vw,4.5rem); line-height:1.08; letter-spacing:-.035em; margin:0 0 clamp(12px,1.4vw,20px); font-weight:650; max-width:20ch; text-wrap:balance; overflow-wrap:anywhere; }
+#adviceReason { font-size:clamp(.9375rem,.8rem + .35vw,1.1875rem); line-height:1.5; margin:0; color:#374b48; overflow-wrap:anywhere; }
+.advice-footer { display:flex; align-items:center; gap:7px; font-size:11px; color:var(--tone); }
+.advice-indicator { height:5px; width:5px; background:currentColor; border-radius:50%; }
+.motion-panel { background:#fffefa; border:1px solid var(--line); border-radius:16px; padding:clamp(16px,2vw,28px); display:flex; flex-direction:column; justify-content:space-between; }
+.motion-metric + .motion-metric { padding-top:17px; margin-top:17px; border-top:1px solid var(--line); }
+.motion-metric h2,.road-card h2 { margin:0 0 10px; font-size:13px; line-height:1.4; color:var(--muted); font-weight:500; }
+.measurement { display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; }
+.measurement strong { font-size:clamp(1.5rem,1rem + 1.2vw,2.5rem); font-weight:600; letter-spacing:-.03em; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
+.measurement span { color:var(--muted); font-size:12px; }
+.road-context { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); grid-column:1/-1; gap:var(--page-gap); }
+.road-card { background:#fffefa; padding:clamp(16px,1.8vw,28px); border:1px solid var(--line); border-radius:14px; }
+.road-value { display:flex; align-items:baseline; flex-wrap:wrap; gap:7px; }
+.road-value strong { font-size:clamp(1.375rem,1rem + 1.1vw,2.25rem); font-weight:600; letter-spacing:-.03em; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
+.road-value span { color:#3d5456; font-size:14px; }
+.road-card p { margin:10px 0 0; color:var(--muted); font-size:12px; }
+.signal-state { display:flex; gap:6px; align-items:center; margin-top:8px; color:var(--muted); font-size:11px; }
+#signalDot { width:6px; height:6px; border-radius:50%; background:#7b8581; }
+#signalDot[data-color="red"] { background:#b33b2c; } #signalDot[data-color="yellow"] { background:#a16a08; } #signalDot[data-color="green"] { background:#267659; }
+.ride-meta { display:flex; justify-content:space-between; gap:8px; flex-wrap:wrap; padding:clamp(10px,1.5vh,16px) 2px; color:var(--muted); font-size:11px; font-variant-numeric:tabular-nums; }
+.ride-controls { border-top:1px solid var(--line); padding-top:19px; display:flex; align-items:flex-start; justify-content:space-between; gap:20px; }
+summary { cursor:pointer; padding:11px 0; font-size:13px; color:#3d5355; }
+.setup-fields { display:grid; grid-template-columns:minmax(0,1fr) 95px; gap:12px; align-items:center; padding:12px 0 6px; }
+label { font-size:13px; } label span { color:var(--muted); }
+input[type="number"] { border:1px solid #b9c8c0; border-radius:6px; background:white; padding:8px 9px; width:95px; font:inherit; font-size:16px; }
+.checkbox { grid-column:1/-1; display:flex; gap:8px; align-items:center; color:var(--muted); }
+input[type="checkbox"] { accent-color:#276f55; width:16px; height:16px; }
+.control-buttons { display:flex; gap:9px; flex-wrap:wrap; }
+button { font:600 13px 'Segoe UI',Arial,sans-serif; padding:12px 17px; border:1px solid #1b3334; border-radius:8px; cursor:pointer; min-height:44px; }
+#startGps,#startDemo { color:#fff; background:#1b3334; }
+#stopGps,#stopDemo { background:transparent; color:#654c40; border-color:#c8cec4; }
+.tracking-status { margin:8px 0 0; color:var(--muted); font-size:12px; max-width:36ch; }
+button:disabled { opacity:.4; cursor:default; }
+button:hover:enabled { filter:brightness(1.15); }
+:focus-visible { outline:3px solid #307fbd; outline-offset:4px; }
+#error { color:#94351f; background:#ffede5; border-radius:8px; padding:12px 16px; font-size:13px; }
+footer { margin-top:clamp(12px,2vh,24px); display:flex; flex-wrap:wrap; justify-content:space-between; gap:8px 16px; color:var(--muted); font-size:11px; }
+footer p { margin:10px 0; } footer details { max-width:60%; } footer summary { font-size:11px; text-align:right; }
+#route,pre { overflow-wrap:anywhere; white-space:pre-wrap; } pre { max-width:600px; }
+[hidden] { display:none !important; }
+/* Tablets and narrow windows: motion stays together below the advice. */
+@media(max-width:42.5rem) {
+  .ride-layout { grid-template-columns:1fr; }
+  .advice-panel { min-height:clamp(210px,29svh,280px); }
+  .motion-panel { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; padding:16px; }
+  .motion-metric + .motion-metric { padding:0 0 0 12px; margin:0; border-top:0; border-left:1px solid var(--line); }
+  .motion-metric h2 { font-size:12px; margin-bottom:6px; }
+  .measurement { gap:4px 6px; }
+  .measurement span { font-size:11px; }
+  .ride-controls { flex-wrap:wrap; padding-top:12px; gap:10px; }
+  .control-buttons { margin-left:auto; }
+  footer details { max-width:100%; }
+}
+/* Phones: concise road rows avoid a long stack of oversized cards. */
+@media(max-width:30rem) {
+  .connection { padding:8px 10px; font-size:11px; }
+  .page-header p { font-size:11px; }
+  .advice-panel { padding:18px; }
+  .advice-label { font-size:11px; letter-spacing:1px; }
+  .advice-footer { font-size:11px; }
+  .motion-panel { padding:12px; gap:8px; }
+  .motion-metric + .motion-metric { padding-left:8px; }
+  .motion-metric h2 { font-size:11px; overflow-wrap:anywhere; }
+  .road-context { grid-template-columns:1fr; gap:8px; }
+  .road-card { display:grid; grid-template-columns:minmax(0,1.1fr) minmax(0,1fr); column-gap:12px; align-items:center; padding:12px 16px; }
+  .road-card h2 { grid-column:1; grid-row:1; font-size:12px; margin:0; }
+  .road-card p { grid-column:1; grid-row:2; font-size:11px; margin-top:4px; }
+  .road-value { grid-column:2; grid-row:1 / span 3; justify-content:flex-end; gap:3px 6px; text-align:right; }
+  .road-value strong { font-size:clamp(1.25rem,5vw,1.5rem); }
+  .road-value span { font-size:12px; }
+  .signal-state { grid-column:1; grid-row:3; margin-top:5px; }
+  .ride-meta { font-size:11px; }
+  .ride-controls { flex-direction:column; align-items:stretch; gap:12px; }
+  .control-buttons { width:100%; margin:0; }
+  #startGps,#startDemo { flex:1; }
+  footer { margin-top:8px; } footer p { margin:0; } footer summary { text-align:left; }
+}
+/* A laptop or landscape phone with little height needs less empty space. */
+@media(max-height:38rem) and (min-width:42.501rem) {
+  main { padding-top:12px; }
+  .page-header { margin-bottom:12px; }
+  .advice-panel { min-height:220px; padding:20px; }
+  #adviceLive { padding:16px 0; }
+  #adviceAction { font-size:clamp(2rem,4vw,3rem); }
+  .motion-panel { padding:14px 20px; }
+  .motion-metric + .motion-metric { padding-top:8px; margin-top:8px; }
+  .road-card { padding:14px 18px; }
+}
+@media(pointer:coarse) { summary,.checkbox { min-height:44px; } .checkbox { padding:6px 0; } }
