@@ -960,13 +960,22 @@ def main():
     # File wins over the hard-coded list when both are present -- keeping
     # a .rou.xml in sync is less error-prone than remembering to also
     # update a Python literal whenever the planned route changes.
+
     if METHOD_KEY == GT_METHOD_KEY:
-        route_file = args.route_file or GROUND_TRUTH_ROUTE_FILE
         route_id = args.route_id or GROUND_TRUTH_ROUTE_ID
 
-        if route_file:
-            route_file_abs = (route_file if os.path.isabs(route_file)
-                               else os.path.join(SCRIPT_DIR, route_file))
+        if args.route_file:
+            # Explicit CLI value -> resolve against the CURRENT directory,
+            # same convention as --input/--output/--sumocfg.
+            route_file_abs = os.path.abspath(args.route_file)
+        elif GROUND_TRUTH_ROUTE_FILE:
+            # Fallback default -> resolve against THIS SCRIPT's directory,
+            # same convention as SUMO_CFG's default.
+            route_file_abs = os.path.join(SCRIPT_DIR, GROUND_TRUTH_ROUTE_FILE)
+        else:
+            route_file_abs = None
+
+        if route_file_abs:
             print(f"[INFO] Loading ground-truth route from {route_file_abs}"
                   + (f" (route id '{route_id}')" if route_id else "") + "...")
             edges = parse_route_from_rou_xml(route_file_abs, route_id)
