@@ -45,6 +45,7 @@ class FuzzyMatcher:
         output_low=10.0,
         output_average=50.0,
         output_high=100.0,
+        max_candidate_dist_m=None,
         vclass=None,               # e.g. "bicycle" to reject disallowed edges
     ):
         # readNet loads the whole network once (expensive) so the caller
@@ -60,6 +61,8 @@ class FuzzyMatcher:
         self.output_low = output_low
         self.output_average = output_average
         self.output_high = output_high
+        self.max_candidate_dist_m = (max_candidate_dist_m if max_candidate_dist_m is not None
+                                      else self.search_radius)
         self.vclass = vclass
 
         # The confirmed edge and how far along it (m from its start), plus
@@ -203,13 +206,37 @@ class FuzzyMatcher:
                     "components": {"short": short, "small": small, "angle_diff": angle_diff, "mode": "following"},
                 }
 
+# ---
+            # # Entering: approaching or past the junction. Score the edges
+            # # connected downstream (falling back to a fresh area search if
+            # # the network offers none), plus the current edge itself, so a
+            # # borderline fix can't be forced off a still-plausible edge.
+            # candidates = self._successor_edges(self._current_edge) or self._nearby_edges(x, y)
+            # if self._current_edge not in candidates:
+            #     candidates = candidates + [self._current_edge]
+# ---
+
             # Entering: approaching or past the junction. Score the edges
-            # connected downstream (falling back to a fresh area search if
-            # the network offers none), plus the current edge itself, so a
-            # borderline fix can't be forced off a still-plausible edge.
-            candidates = self._successor_edges(self._current_edge) or self._nearby_edges(x, y)
+            # connected downstream first...
+            candidates = self._successor_edges(self._current_edge) or []
             if self._current_edge not in candidates:
                 candidates = candidates + [self._current_edge]
+
+            # ...but successor-only isn't reliable once none of them are
+            # actually near the fix -- e.g. a small local loop of edges
+            # the graph keeps routing back into while the real position
+            # has moved on. Check the best successor candidate's distance
+            # before trusting the set; if it's too far, widen to a full
+            # area search instead of silently matching to the least-bad
+            # option in a stale local cluster.
+            if candidates:
+                best_succ_dist = min(
+                    self._project(e, x, y)[0] for e in candidates
+                )
+                if best_succ_dist > self.max_candidate_dist_m:
+                    candidates = candidates + self._nearby_edges(x, y)
+            else:
+                candidates = self._nearby_edges(x, y)
         else:
             candidates = self._nearby_edges(x, y)
 
@@ -223,6 +250,11 @@ class FuzzyMatcher:
             if best is None or e_score > best[0]:
                 best = (e_score, edge, e_dist, e_offset, e_sx, e_sy, e_angle, e_short, e_small)
         score, edge, dist, offset, sx, sy, angle_diff, short, small = best
+
+        if dist > self.search_radius:
+            # Every candidate we had was still too far -- don't report a
+            # confident match to whichever was least-bad.
+            return None
 
         # Temporal consensus: a NEW edge must win on confirm_count
         # consecutive fixes before it replaces the current one, so one

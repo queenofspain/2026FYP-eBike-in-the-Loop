@@ -98,7 +98,7 @@ DEFAULT_LAT_COL = "lat"
 DEFAULT_LON_COL = "lon"
 DEFAULT_TIMESTAMP_COL = "phone_timestamp"
 DEFAULT_SPEED_COL = "phone_speed_mps"
-DEFAULT_COURSE_COL = "course_deg"
+DEFAULT_COURSE_COL = "phone_course_deg"
 DEFAULT_ACCURACY_COL = "accuracy_m"
 
 # Standing in for the live script's POLL_INTERVAL: used as the nominal
@@ -426,7 +426,7 @@ def build_kalman():
         ) from e
 
     return KalmanFilter(
-        process_noise=1.0,
+        process_noise=0.1,
         sigma_default=4.07,
         use_accuracy=True,
         min_sigma=1.0,
@@ -954,7 +954,21 @@ def main():
     METHOD_KEY = resolve_method(args.method) if args.method else prompt_for_method()
     METHOD_CFG = METHODS[METHOD_KEY]
 
-    use_kalman = args.kalman if args.kalman is not None else prompt_for_kalman()
+    # use_kalman = args.kalman if args.kalman is not None else prompt_for_kalman()
+
+           # Ground truth is deliberately built from RAW GPS. Filtering first
+        # would make GT a function of the Kalman settings, so the filtered and
+        # unfiltered runs of each method would be scored against different
+        # reference tracks -- and a tuning change to kalman_filter.py would
+        # silently move the target every method is measured against.
+    if METHOD_KEY == GT_METHOD_KEY:
+        use_kalman = False
+        if args.kalman:
+            print("[WARN] --kalman ignored for "
+                    f"'{GT_METHOD_KEY}': ground truth is always built from "
+                    f"unfiltered GPS.")
+    else:
+        use_kalman = args.kalman if args.kalman is not None else prompt_for_kalman()
 
         # ---- Resolve the ground-truth route --------------------------------
     # File wins over the hard-coded list when both are present -- keeping
@@ -1024,23 +1038,9 @@ def main():
 
     # Built after the matcher so a missing kalman_filter.py fails before
     # the (potentially slow) CSV load and SUMO startup.
-    # if use_kalman:
-    #     KALMAN = build_kalman()
-    #     print("[INFO] Kalman pre-filter active.")
-
-        # Ground truth is deliberately built from RAW GPS. Filtering first
-    # would make GT a function of the Kalman settings, so the filtered and
-    # unfiltered runs of each method would be scored against different
-    # reference tracks -- and a tuning change to kalman_filter.py would
-    # silently move the target every method is measured against.
-    if METHOD_KEY == GT_METHOD_KEY:
-        use_kalman = False
-        if args.kalman:
-            print("[WARN] --kalman ignored for "
-                  f"'{GT_METHOD_KEY}': ground truth is always built from "
-                  f"unfiltered GPS.")
-    else:
-        use_kalman = args.kalman if args.kalman is not None else prompt_for_kalman()
+    if use_kalman:
+        KALMAN = build_kalman()
+        print("[INFO] Kalman pre-filter active.")
 
     print("[INFO] Loading GPS points...")
     gps_rows = load_gps_rows(

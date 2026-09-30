@@ -8,7 +8,7 @@ import sumolib
 
 NET_FILE = "Monash_Campus/2026-08-25-19-43-30/osm.net.xml"
 GPS_FILE = "Monash_Campus/Data/edited_100926.csv"
-GROUND_TRUTH_FILE = "Monash_Campus/Data/ground_truth_100926.csv"
+GROUND_TRUTH_FILE = "Monash_Campus/Data/ground_truth_240926.csv"
 
 OUTPUT_FILE = "Monash_Campus/Data/gps_data_processed.csv"
 
@@ -50,7 +50,7 @@ df["position_error"] = np.sqrt(
 # ============================================================
 
 median_error = np.median(df["position_error"])
-sigma_z = 1.4826 * median_error
+sigma_z = 0.5*1.4826 * median_error
 # print(f"sigma_z = {sigma_z}")
 
 keep_rows = []
