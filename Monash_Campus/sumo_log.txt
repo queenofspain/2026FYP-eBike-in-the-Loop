@@ -1,0 +1,130 @@
+***Starting server on port 50491 ***
+Loading net-file from 'C:\aaUniFiles\FYP\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-08-25-19-43-30\osm.net.xml' ... done (787ms).
+Loading additional-files from 'C:\aaUniFiles\FYP\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-08-25-19-43-30\osm.poly.xml.gz' ... done (168ms).
+Loading additional-files from 'C:\aaUniFiles\FYP\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-08-25-19-43-30\output.add.xml' ... done (42ms).
+Loading route-files incrementally from 'C:\aaUniFiles\FYP\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-08-25-19-43-30\full_campus_v3.rou.xml'
+Loading done.
+Simulation started with time: 0.00.
+Error: Answered with error to command 0xc4: The vehicle 'native_wokal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'native_wkal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'topo_wokal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'topo_wkal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'hmm_wokal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'hmm_wkal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'st_wokal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'st_wkal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'native_wokal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'native_wkal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'topo_wokal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'topo_wkal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'hmm_wokal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'hmm_wkal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'st_wokal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'st_wkal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'native_wokal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'native_wkal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'topo_wokal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'topo_wkal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'hmm_wokal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'hmm_wkal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'st_wokal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'st_wkal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'native_wokal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'native_wkal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'topo_wokal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'topo_wkal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'hmm_wokal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'hmm_wkal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'st_wokal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'st_wkal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'native_wokal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'native_wkal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'topo_wokal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'topo_wkal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'hmm_wokal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'hmm_wkal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'st_wokal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'st_wkal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'native_wokal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'native_wkal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'topo_wokal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'topo_wkal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'hmm_wokal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'hmm_wkal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'st_wokal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'st_wkal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'native_wokal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'native_wkal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'topo_wokal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'topo_wkal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'hmm_wokal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'hmm_wkal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'st_wokal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'st_wkal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'native_wokal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'native_wkal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'topo_wokal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'topo_wkal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'hmm_wokal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'hmm_wkal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'st_wokal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'st_wkal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'native_wokal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'native_wkal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'topo_wokal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'topo_wkal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'hmm_wokal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'hmm_wkal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'st_wokal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'st_wkal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'native_wokal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'native_wkal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'topo_wokal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'topo_wkal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'hmm_wokal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'hmm_wkal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'st_wokal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'st_wkal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'native_wokal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'native_wkal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'topo_wokal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'topo_wkal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'hmm_wokal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'hmm_wkal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'st_wokal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'st_wkal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'native_wokal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'native_wkal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'topo_wokal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'topo_wkal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'hmm_wokal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'hmm_wkal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'st_wokal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'st_wkal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'native_wokal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'native_wkal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'topo_wokal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'topo_wkal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'hmm_wokal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'hmm_wkal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'st_wokal_ebike' to add already exists.
+Error: Answered with error to command 0xc4: The vehicle 'st_wkal_ebike' to add already exists.
+Error: tcpip::Socket::recvAndCheck @ recv: Socket reset by peer
+Quitting (on error).
+Simulation ended at time: 53.00.
+Performance:
+ Duration: 144.60s
+ TraCI-Duration: 108.83s
+ Real time factor: 0.366523
+ UPS: 3.893445
+Vehicles:
+ Inserted: 11
+ Running: 11
+ Waiting: 0
+Statistics (avg of 0):
+ RouteLength: 0.00
+ Speed: 0.00
+ Duration: 0.00
+ WaitingTime: 0.00
+ TimeLoss: 0.00
+ DepartDelay: 0.00

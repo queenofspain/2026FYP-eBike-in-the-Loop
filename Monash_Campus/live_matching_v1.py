@@ -66,15 +66,33 @@ skipped for this fix and holds its last position; the miss is still
 written to the CSV (matched=False + unmatched_reason). A failure or
 exception in one bike never stops the others.
 
+PLACEMENT (no exact placement anywhere)
+---------------------------------------
+Exact placement (keepRoute 2/6) crashed sumo-gui, so every bike is now
+SNAPPED onto a lane by SUMO:
+    native         keepRoute 0 -- pure SUMO snapping (the baseline)
+    custom methods keepRoute 4 -- SUMO snapping, permissions ignored,
+                                  steered by the matcher's edge as the
+                                  moveToXY edgeID hint
+The METHOD RESULT is still the matcher's own output (matched_x/matched_y,
+edge_id) -- that is what the comparison should use. actual_x/actual_y and
+actual_edge_id are where the bike was drawn in SUMO. sumo_override=True
+marks any fix where SUMO drew a bike on a different edge from the one its
+matcher chose; check that column after a run -- it should be (almost)
+always False for the custom methods.
+
 CSV LOG
 -------
 On by default (--no-log to disable). ONE file per run in ./runs/ with one
 row per bike per fix:
-    single bike : <method>[_kalman]_<timestamp>.csv      (as before)
+    single bike : <method>[_kalman]_<timestamp>.csv
     all 10      : all_methods_<timestamp>.csv
+    otherwise   : multi_<N>bikes_<timestamp>.csv
 Rows are identified by vehicle_id / method / kalman, and grouped by fix_seq
 (all rows sharing a fix_seq are the same GPS fix). The columns are a
 superset of the old live log and the post-processed log -- see FIELDNAMES.
+matched_lat/matched_lon are back-projected through SUMO itself
+(traci.simulation.convertGeo), so pyproj is NOT required.
 ----------------------------------------------------------------------
 """
 
@@ -108,13 +126,16 @@ MATCH_THRESHOLD = 100.0    # moveToXY search radius (m) for candidate edges
 SUMO_DELAY_MS = "1000"     # GUI pacing, handled by SUMO's own event loop
 
 # Upper bound on the Kalman filter's dt. Matches post_processed_matching_v2
-# (30 s) rather than the old live script's STALE_DATA_SECONDS (5 s): a
-# fix is only ever dropped for staleness BEFORE it reaches the filter, but
-# the gap between two accepted fixes can still exceed 5 s after a dropout.
+# (30 s): a fix is only ever dropped for staleness BEFORE it reaches the
+# filter, but the gap between two accepted fixes can still exceed 5 s
+# after a dropout.
 MAX_KALMAN_DT = 30.0
 
 # Directory for the CSV logs.
 LOG_DIR = "runs"
+
+# File SUMO writes its own messages to when --sumo-log is given.
+SUMO_LOG_FILE = "sumo_log.txt"
 
 # Hard ceiling on simultaneous bikes (5 methods x Kalman on/off).
 MAX_BIKES = 10
@@ -152,24 +173,34 @@ if SCRIPT_DIR not in sys.path:
 #
 # Extra fields on top of v2's registry (they only matter live):
 #   keep_route : the moveToXY keepRoute bitmask used to place the bike.
-#                  6 = bits 1+2, exact placement + lane-permission bypass.
-#                Bare 2 can leave the vehicle lane-less and trigger the
-#                sumo-gui freeze in upstream SUMO issue #10974; bit 2
-#                bypasses the lane permission check without touching the
-#                placed coordinates.
-#                NATIVE USES 6 TOO (it was 0 in live_phone_to_sumo.py).
-#                v2 redefined native as convertRoad + sumolib snapping, so
-#                the snapped point is already computed before the bike is
-#                placed; letting moveToXY re-snap it (0) would make the
-#                bike sit somewhere other than the logged matched point.
-#                Set native back to 0 if you want the old behaviour.
+#                It is a sum of flag VALUES:
+#                  1 = only lanes on the current route
+#                  2 = exact placement at the given (x, y)
+#                  4 = ignore lane permissions
+#                Exact placement (flag 2, i.e. keepRoute 2 or 6) is NOT
+#                used by anything: it froze/crashed sumo-gui (2 alone via
+#                lane-less bikes, upstream SUMO issue #10974; 6 still
+#                crashed with 10 bikes running).
+#                Custom matchers use 4: SUMO snaps the bike onto a lane
+#                (always a clean on-lane state, like native), permissions
+#                ignored, and the matcher's edge is passed as the moveToXY
+#                edgeID hint. SUMO's scoring weights a matching edge ID
+#                heavily, and the matcher's point is already on that edge,
+#                so the bike lands on the matcher's edge at (nearly) the
+#                matcher's point. Every fix is CHECKED: actual_edge_id is
+#                read back and sumo_override=True flags any fix where SUMO
+#                put the bike on a different edge than the matcher chose.
+#                Native uses 0: pure SUMO snapping, the baseline.
+#                Never use 1/3/5/7 here: every bike lives on a one-edge
+#                dummy route, so bit 1 would fail as soon as the bike
+#                leaves that edge.
 #   colour     : (r, g, b) of the wokal bike; the wkal bike gets a tint.
 METHODS = {
     "native": {
         "module": None,
         "cls": None,
         "kwargs": {},
-        "keep_route": 6,
+        "keep_route": 0,
         "colour": (110, 110, 110),
         "label": "Geometric (SUMO native convertRoad)",
     },
@@ -183,7 +214,7 @@ METHODS = {
             "min_speed_for_heading": 0.5,
             "vclass": None,
         },
-        "keep_route": 6,
+        "keep_route": 4,
         "colour": (30, 90, 220),
         "label": "Topological (weighted, Velaga et al.)",
     },
@@ -203,7 +234,7 @@ METHODS = {
             "output_high": 100.0,
             "vclass": None,
         },
-        "keep_route": 6,
+        "keep_route": 4,
         "colour": (30, 160, 60),
         "label": "Fuzzy logic (Ren & Karimi)",
     },
@@ -219,7 +250,7 @@ METHODS = {
             "min_sigma": 1.0,
             "vclass": None,
         },
-        "keep_route": 6,
+        "keep_route": 4,
         "colour": (240, 130, 20),
         "label": "Hidden Markov Model (Newson & Krumm)",
     },
@@ -236,7 +267,7 @@ METHODS = {
             "nominal_dt": POLL_INTERVAL,
             "vclass": None,
         },
-        "keep_route": 6,
+        "keep_route": 4,
         "colour": (220, 30, 30),
         "label": "ST-Matching (Lou et al.)",
     },
@@ -280,6 +311,8 @@ FIELDNAMES = [
     "matched_x", "matched_y",      # same values, v2 naming
     "matched_lat", "matched_lon",
     "actual_x", "actual_y",        # where SUMO really placed the bike
+    "actual_edge_id",              # edge SUMO really placed the bike on
+    "sumo_override",               # True if actual_edge_id != edge_id
     "edge_id", "lane_index", "lane_pos", "is_internal_edge",
     "raw_dist", "score", "components", "window_len",
     "correction_m", "match_error_raw_m", "match_error_filt_m", "match_ms",
@@ -498,10 +531,9 @@ def build_matcher(runner, net_file, announced):
 
 def build_kalman():
     """Build the ONE shared Kalman pre-filter. Same module and parameters as
-    post_processed_matching_v2.py (process_noise=0.1, NOT the old live
-    script's 1.0). A missing module is a hard error rather than a silent
-    disable: a bike labelled 'wkal' that quietly didn't filter anything
-    would be worse than no bike at all."""
+    post_processed_matching_v2.py (process_noise=0.1). A missing module is
+    a hard error rather than a silent disable: a bike labelled 'wkal' that
+    quietly didn't filter anything would be worse than no bike at all."""
     try:
         from kalman_filter import KalmanFilter
     except ImportError as e:
@@ -611,6 +643,24 @@ def _csv(value, nd):
         return f"{float(value):.{nd}f}"
     except (TypeError, ValueError):
         return str(value)
+
+
+def xy_to_lonlat(x, y):
+    """Network (x, y) -> (lon, lat) using SUMO's OWN projection, via TraCI.
+
+    This replaces sumolib's net.convertXY2LonLat, which needs the pyproj
+    package. convertGeo with its default fromGeo=False goes network ->
+    geo, using exactly the projection SUMO used to build the network (and
+    that convertGeo(..., fromGeo=True) used to bring the raw GPS in), so
+    the round trip is consistent. Returns (lon, lat) or (None, None)."""
+    try:
+        lon, lat = traci.simulation.convertGeo(x, y)
+        return lon, lat
+    except traci.exceptions.FatalTraCIError:
+        raise
+    except traci.TraCIException as e:
+        print(f"[WARN] Could not back-project ({x:.1f}, {y:.1f}) to lat/lon: {e}")
+        return None, None
 
 
 # ======================================================================
@@ -757,7 +807,7 @@ class LiveSession:
         # actual_x/actual_y/sumo_speed_mps can be read back correctly. See
         # finalize_pending().
         self._batch = None
-        # One bike -> the old detailed per-fix line; several -> a compact
+        # One bike -> the detailed per-fix line; several -> a compact
         # line each (10 long lines a second are unreadable).
         self.verbose = False
 
@@ -790,7 +840,7 @@ class LiveSession:
             "accuracy_m": _csv(accuracy_m, 2),
         }
 
-        if self.verbose is False:
+        if not self.verbose:
             print(f"[FIX #{seq}] lat={lat:.6f} lon={lon:.6f} "
                   f"speed={phone_speed_mps:.2f} m/s "
                   f"acc={'--' if accuracy_m is None else f'{accuracy_m:.1f}'} m")
@@ -850,7 +900,7 @@ class LiveSession:
             try:
                 row, ctx = self._run_bike(
                     r, common, x, y, px, py,
-                    speed_mps, course_for_match, course_deg_raw,
+                    speed_mps, course_for_match,
                     fix_time, accuracy_m,
                 )
             except traci.exceptions.FatalTraCIError:
@@ -887,10 +937,9 @@ class LiveSession:
 
         WHY THIS EXISTS: moveToXY does not move the bike immediately -- SUMO
         applies it on the NEXT simulationStep(). Reading getPosition() right
-        after moveToXY (as live_phone_to_sumo.py did) therefore returns where
-        the bike was on the PREVIOUS fix, so actual_x/actual_y (and the SUMO
-        speed) in the old logs lag one fix behind. Calling this straight
-        after simulationStep() reads the bike where SUMO really put it.
+        after moveToXY therefore returns where the bike was on the PREVIOUS
+        fix. Calling this straight after simulationStep() reads the bike
+        where SUMO really put it.
 
         read_back=False (shutdown / defensive flush) writes the rows with
         blank actual_* rather than logging a stale position.
@@ -910,6 +959,7 @@ class LiveSession:
 
         for r, row, ctx in placed:
             actual_x = actual_y = sumo_speed = sumo_angle = None
+            actual_edge = None
             if read_back:
                 pos = _read(r.vehicle_id, traci.vehicle.getPosition)
                 if pos is not None:
@@ -921,9 +971,19 @@ class LiveSession:
                         actual_x = actual_y = None
                 sumo_speed = _read(r.vehicle_id, traci.vehicle.getSpeed)
                 sumo_angle = _read(r.vehicle_id, traci.vehicle.getAngle)
+                actual_edge = _read(r.vehicle_id, traci.vehicle.getRoadID)
 
             row["actual_x"], row["actual_y"] = _csv(actual_x, 4), _csv(actual_y, 4)
             row["sumo_speed_mps"] = _csv(sumo_speed, 3)
+            if actual_edge is not None:
+                row["actual_edge_id"] = actual_edge
+                override = actual_edge != ctx["edge_id"]
+                row["sumo_override"] = override
+                # Only worth shouting about for the custom matchers: for
+                # native, SUMO choosing the edge IS the method.
+                if override and r.cfg["module"] is not None:
+                    print(f"[OVERRIDE][{r.tag}] matcher chose {ctx['edge_id']} "
+                          f"but SUMO placed the bike on {actual_edge or '(none)'}")
             self._print_ok(r, row, ctx, actual_x, actual_y, sumo_speed, sumo_angle)
 
         self._write(rows)
@@ -980,7 +1040,7 @@ class LiveSession:
 
     # ------------------------------------------------------------------
     def _run_bike(self, r, common, x, y, px, py, speed_mps, course_for_match,
-                  course_deg_raw, fix_time, accuracy_m):
+                  fix_time, accuracy_m):
         """Match one fix for one bike and place the bike. Returns
         (csv_row, ctx): ctx is None unless the bike was actually moved, in
         which case the row is completed later by finalize_pending() once
@@ -1063,11 +1123,10 @@ class LiveSession:
         row["match_x"] = row["matched_x"] = _csv(move_x, 4)
         row["match_y"] = row["matched_y"] = _csv(move_y, 4)
 
-        try:
-            m_lon, m_lat = self.net.convertXY2LonLat(move_x, move_y)
-            row["matched_lat"], row["matched_lon"] = _csv(m_lat, 8), _csv(m_lon, 8)
-        except Exception as e:
-            print(f"[WARN] Could not back-project matched point to lat/lon: {e}")
+        # Back-project the matched point through SUMO's own projection (no
+        # pyproj needed). convertGeo returns (lon, lat).
+        m_lon, m_lat = xy_to_lonlat(move_x, move_y)
+        row["matched_lat"], row["matched_lon"] = _csv(m_lat, 8), _csv(m_lon, 8)
 
         # How far the matcher moved the point off the raw fix, and off the
         # (possibly filtered) point it was actually given.
@@ -1077,7 +1136,7 @@ class LiveSession:
         r.stats["matched"] += 1
 
         # ---- Place the bike -----------------------------------------------
-        if not spawn_bike_if_missing(r):
+        if not spawn_bike_if_missing(rwd):
             row["unmatched_reason"] = "spawn_failed"
             return row, None
 
@@ -1086,9 +1145,10 @@ class LiveSession:
 
         # NOTE: do NOT call setRoute() here. SUMO requires a replacement
         # route to contain the vehicle's CURRENT edge, so it fails on every
-        # fix after the bike leaves its spawn edge. keepRoute bit 2 means
-        # placement does not consult the route at all, and bit 4 bypasses
-        # the lane permission check.
+        # fix after the bike leaves its spawn edge. With keepRoute 0 or 4
+        # SUMO snaps the bike and replaces the route itself as needed; the
+        # edgeID argument is the hint that steers it onto the matcher's
+        # edge (4 additionally ignores lane permissions).
         try:
             traci.vehicle.moveToXY(
                 vehID=r.vehicle_id,
@@ -1116,7 +1176,7 @@ class LiveSession:
         except traci.TraCIException:
             pass
 
-                # The read-back (actual_x/y, SUMO speed/angle) and the console line
+        # The read-back (actual_x/y, SUMO speed/angle) and the console line
         # happen in finalize_pending(), after the next simulationStep().
         ctx = {
             "edge_id": edge_id, "move_x": move_x, "move_y": move_y,
@@ -1242,6 +1302,9 @@ def parse_args():
                    help="do NOT write a CSV log")
     p.add_argument("--no-gui", action="store_true",
                    help="run headless (sumo instead of sumo-gui)")
+    p.add_argument("--sumo-log", action="store_true",
+                   help=f"have SUMO write its own messages to {SUMO_LOG_FILE} "
+                        "next to this script (for diagnosing GUI crashes)")
     p.add_argument("--cfg", default=SUMO_CFG,
                    help="path to the .sumocfg, relative to this script")
     p.add_argument("-v", "--verbose", action="store_true",
@@ -1268,7 +1331,8 @@ def main():
     print(f"[INFO] Bikes ({len(runners)}):")
     for r in runners:
         print(f"         {r.vehicle_id:<24} {r.cfg['label']}"
-              f"{'  + Kalman' if r.use_kalman else ''}")
+              f"{'  + Kalman' if r.use_kalman else ''}"
+              f"  [keepRoute={r.cfg['keep_route']}]")
     print(f"[INFO] SUMO config: {sumocfg_abs}")
     print(f"[INFO] Net file:    {net_file}")
     print("-" * 66)
@@ -1282,7 +1346,7 @@ def main():
 
     announced = set()
     for i, r in enumerate(runners, start=1):
-        if r.matcher is None and r.cfg["module"] is None:
+        if r.cfg["module"] is None:
             print(f"[INFO] ({i}/{len(runners)}) {r.tag}: native SUMO matching "
                   f"-- no external matcher loaded.")
             continue
@@ -1308,7 +1372,8 @@ def main():
 
     # Launch SUMO under TraCI's control:
     #   --start                -> begin stepping immediately
-    #   --delay                -> GUI pacing (handled by SUMO's own loop)
+    #   --delay                -> GUI pacing (handled by SUMO's own loop; a
+    #                             manual sleep() would starve the GUI)
     #   --end 1000000          -> effectively never auto-terminate
     #   --collision.action none-> the bikes sit almost on top of each other
     #                             by design; without this SUMO may treat the
@@ -1328,6 +1393,10 @@ def main():
     ]
     if not args.no_gui:
         cmd += ["--delay", SUMO_DELAY_MS]
+    if args.sumo_log:
+        sumo_log_path = os.path.join(SCRIPT_DIR, SUMO_LOG_FILE)
+        cmd += ["--log", sumo_log_path, "--verbose"]
+        print(f"[INFO] SUMO messages -> {sumo_log_path}")
 
     traci.start(cmd)
 
@@ -1391,7 +1460,8 @@ def main():
             # the simulation flat out (hundreds of sim-seconds per phone
             # fix). Remote control of a bike lapses after a few idle sim
             # seconds and SUMO then drops the off-route bike, so pace
-            # headless runs exactly like the GUI's --delay.
+            # headless runs exactly like the GUI's --delay. (GUI runs never
+            # sleep here: that would starve sumo-gui's event loop.)
             if args.no_gui:
                 time.sleep(float(SUMO_DELAY_MS) / 1000.0)
 
