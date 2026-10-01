@@ -1136,7 +1136,7 @@ class LiveSession:
         r.stats["matched"] += 1
 
         # ---- Place the bike -----------------------------------------------
-        if not spawn_bike_if_missing(rwd):
+        if not spawn_bike_if_missing(r):
             row["unmatched_reason"] = "spawn_failed"
             return row, None
 
