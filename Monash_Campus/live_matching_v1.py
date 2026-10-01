@@ -66,20 +66,17 @@ skipped for this fix and holds its last position; the miss is still
 written to the CSV (matched=False + unmatched_reason). A failure or
 exception in one bike never stops the others.
 
-PLACEMENT (no exact placement anywhere)
----------------------------------------
-Exact placement (keepRoute 2/6) crashed sumo-gui, so every bike is now
-SNAPPED onto a lane by SUMO:
-    native         keepRoute 0 -- pure SUMO snapping (the baseline)
-    custom methods keepRoute 4 -- SUMO snapping, permissions ignored,
-                                  steered by the matcher's edge as the
-                                  moveToXY edgeID hint
-The METHOD RESULT is still the matcher's own output (matched_x/matched_y,
-edge_id) -- that is what the comparison should use. actual_x/actual_y and
-actual_edge_id are where the bike was drawn in SUMO. sumo_override=True
-marks any fix where SUMO drew a bike on a different edge from the one its
-matcher chose; check that column after a run -- it should be (almost)
-always False for the custom methods.
+PLACEMENT (keepRoute 0 for every bike)
+--------------------------------------
+Every bike is SNAPPED onto a lane by SUMO with keepRoute 0, which respects
+bicycle permissions (earlier settings 2/4/6 froze or crashed SUMO, see the
+registry comment). For the custom matchers the matcher's edge is passed as
+the edgeID hint and the phone heading is withheld, so SUMO's own scoring
+doesn't fight the matcher's choice.
+The METHOD RESULT is the matcher's own output (matched_x/matched_y,
+edge_id) -- that is what the comparison should use. actual_x/actual_y is
+where the bike was drawn. For native, SUMO's placement IS the method, so
+use actual_* there.
 
 CSV LOG
 -------
@@ -177,23 +174,27 @@ if SCRIPT_DIR not in sys.path:
 #                  1 = only lanes on the current route
 #                  2 = exact placement at the given (x, y)
 #                  4 = ignore lane permissions
-#                Exact placement (flag 2, i.e. keepRoute 2 or 6) is NOT
-#                used by anything: it froze/crashed sumo-gui (2 alone via
-#                lane-less bikes, upstream SUMO issue #10974; 6 still
-#                crashed with 10 bikes running).
-#                Custom matchers use 4: SUMO snaps the bike onto a lane
-#                (always a clean on-lane state, like native), permissions
-#                ignored, and the matcher's edge is passed as the moveToXY
-#                edgeID hint. SUMO's scoring weights a matching edge ID
-#                heavily, and the matcher's point is already on that edge,
-#                so the bike lands on the matcher's edge at (nearly) the
-#                matcher's point. Every fix is CHECKED: actual_edge_id is
-#                read back and sumo_override=True flags any fix where SUMO
-#                put the bike on a different edge than the matcher chose.
-#                Native uses 0: pure SUMO snapping, the baseline.
-#                Never use 1/3/5/7 here: every bike lives on a one-edge
-#                dummy route, so bit 1 would fail as soon as the bike
-#                leaves that edge.
+#                EVERY bike uses 0. History of what failed:
+#                  2 -> bikes left lane-less, sumo-gui froze (SUMO #10974)
+#                  6 -> GUI crash with 10 bikes
+#                  4 -> SUMO itself crashed after bikes were snapped onto
+#                       pedestrian WALKING AREAS (lane ids like
+#                       ':9139137375_w0') and junction internals. Flag 4
+#                       ignores lane permissions, which is exactly what
+#                       lets a vehicle onto a walking area. 6 contains 4,
+#                       so it was probably the same failure.
+#                With 0 SUMO only places a bicycle on lanes bicycles may
+#                use, so walking areas, sidewalks and crossings are off
+#                limits. The matcher's edge is still passed as the
+#                moveToXY edgeID hint, and for the custom matchers the
+#                phone heading is NOT passed (see _run_bike) so SUMO's
+#                angle term can't flip the bike onto the opposite
+#                direction of a two-way road.
+#                This only affects where the bike is DRAWN. The method's
+#                result (edge_id, matched_x/y) is logged before SUMO is
+#                involved.
+#                Never use 1/3/5/7: every bike lives on a one-edge dummy
+#                route, so bit 1 fails once the bike leaves that edge.
 #   colour     : (r, g, b) of the wokal bike; the wkal bike gets a tint.
 METHODS = {
     "native": {
@@ -214,7 +215,7 @@ METHODS = {
             "min_speed_for_heading": 0.5,
             "vclass": None,
         },
-        "keep_route": 4,
+        "keep_route": 0,
         "colour": (30, 90, 220),
         "label": "Topological (weighted, Velaga et al.)",
     },
@@ -234,7 +235,7 @@ METHODS = {
             "output_high": 100.0,
             "vclass": None,
         },
-        "keep_route": 4,
+        "keep_route": 0,
         "colour": (30, 160, 60),
         "label": "Fuzzy logic (Ren & Karimi)",
     },
@@ -250,7 +251,7 @@ METHODS = {
             "min_sigma": 1.0,
             "vclass": None,
         },
-        "keep_route": 4,
+        "keep_route": 0,
         "colour": (240, 130, 20),
         "label": "Hidden Markov Model (Newson & Krumm)",
     },
@@ -267,7 +268,7 @@ METHODS = {
             "nominal_dt": POLL_INTERVAL,
             "vclass": None,
         },
-        "keep_route": 4,
+        "keep_route": 0,
         "colour": (220, 30, 30),
         "label": "ST-Matching (Lou et al.)",
     },
@@ -311,8 +312,6 @@ FIELDNAMES = [
     "matched_x", "matched_y",      # same values, v2 naming
     "matched_lat", "matched_lon",
     "actual_x", "actual_y",        # where SUMO really placed the bike
-    "actual_edge_id",              # edge SUMO really placed the bike on
-    "sumo_override",               # True if actual_edge_id != edge_id
     "edge_id", "lane_index", "lane_pos", "is_internal_edge",
     "raw_dist", "score", "components", "window_len",
     "correction_m", "match_error_raw_m", "match_error_filt_m", "match_ms",
@@ -959,7 +958,6 @@ class LiveSession:
 
         for r, row, ctx in placed:
             actual_x = actual_y = sumo_speed = sumo_angle = None
-            actual_edge = None
             if read_back:
                 pos = _read(r.vehicle_id, traci.vehicle.getPosition)
                 if pos is not None:
@@ -971,19 +969,9 @@ class LiveSession:
                         actual_x = actual_y = None
                 sumo_speed = _read(r.vehicle_id, traci.vehicle.getSpeed)
                 sumo_angle = _read(r.vehicle_id, traci.vehicle.getAngle)
-                actual_edge = _read(r.vehicle_id, traci.vehicle.getRoadID)
 
             row["actual_x"], row["actual_y"] = _csv(actual_x, 4), _csv(actual_y, 4)
             row["sumo_speed_mps"] = _csv(sumo_speed, 3)
-            if actual_edge is not None:
-                row["actual_edge_id"] = actual_edge
-                override = actual_edge != ctx["edge_id"]
-                row["sumo_override"] = override
-                # Only worth shouting about for the custom matchers: for
-                # native, SUMO choosing the edge IS the method.
-                if override and r.cfg["module"] is not None:
-                    print(f"[OVERRIDE][{r.tag}] matcher chose {ctx['edge_id']} "
-                          f"but SUMO placed the bike on {actual_edge or '(none)'}")
             self._print_ok(r, row, ctx, actual_x, actual_y, sumo_speed, sumo_angle)
 
         self._write(rows)
@@ -1140,15 +1128,23 @@ class LiveSession:
             row["unmatched_reason"] = "spawn_failed"
             return row, None
 
-        angle_to_use = (course_for_match if course_for_match is not None
-                        else traci.constants.INVALID_DOUBLE_VALUE)
+        # Heading for moveToXY. Native: the phone heading, so SUMO's own
+        # matcher gets every input it normally would. Custom matchers: NO
+        # heading. SUMO scores candidate lanes partly by how well they
+        # match the given angle, and on a two-way road that term flipped
+        # bikes onto the opposite direction from the one the matcher chose.
+        # Without it, SUMO decides on distance + the edgeID hint only.
+        if r.matcher is None and course_for_match is not None:
+            angle_to_use = course_for_match
+        else:
+            angle_to_use = traci.constants.INVALID_DOUBLE_VALUE
 
         # NOTE: do NOT call setRoute() here. SUMO requires a replacement
         # route to contain the vehicle's CURRENT edge, so it fails on every
-        # fix after the bike leaves its spawn edge. With keepRoute 0 or 4
-        # SUMO snaps the bike and replaces the route itself as needed; the
-        # edgeID argument is the hint that steers it onto the matcher's
-        # edge (4 additionally ignores lane permissions).
+        # fix after the bike leaves its spawn edge. With keepRoute 0 SUMO
+        # snaps the bike onto a bicycle-permitted lane and replaces the
+        # route itself as needed; the edgeID argument is the hint that
+        # steers it onto the matcher's edge.
         try:
             traci.vehicle.moveToXY(
                 vehID=r.vehicle_id,
