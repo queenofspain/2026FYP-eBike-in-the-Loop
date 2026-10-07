@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- generated on 2026-10-01T11:51:10.597377+10:00 by Eclipse SUMO GUI 1.26.0
+<!-- generated on 2026-10-05T15:59:53.820443+10:00 by Eclipse SUMO GUI 1.27.1
 <sumoConfiguration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/sumoConfiguration.xsd">
 
     <input>
-        <net-file value="C:\aaUniFiles\FYP\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-08-25-19-43-30\osm.net.xml"/>
-        <route-files value="C:\aaUniFiles\FYP\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-08-25-19-43-30\full_campus_v3.rou.xml"/>
-        <additional-files value="C:\aaUniFiles\FYP\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-08-25-19-43-30\osm.poly.xml.gz,C:\aaUniFiles\FYP\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-08-25-19-43-30\output.add.xml"/>
+        <net-file value="C:\Uni\Final Year Project\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-08-25-19-43-30\osm.net.xml"/>
+        <route-files value="C:\Uni\Final Year Project\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-08-25-19-43-30\full_campus_v3.rou.xml"/>
+        <additional-files value="C:\Uni\Final Year Project\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-08-25-19-43-30\osm.poly.xml.gz,C:\Uni\Final Year Project\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-08-25-19-43-30\output.add.xml"/>
     </input>
 
     <output>
-        <tripinfo-output value="C:\aaUniFiles\FYP\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-08-25-19-43-30\tripinfos.xml"/>
-        <statistic-output value="C:\aaUniFiles\FYP\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-08-25-19-43-30\stats.xml"/>
+        <tripinfo-output value="C:\Uni\Final Year Project\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-08-25-19-43-30\tripinfos.xml"/>
+        <statistic-output value="C:\Uni\Final Year Project\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-08-25-19-43-30\stats.xml"/>
     </output>
 
     <time>
@@ -38,13 +38,28 @@
     </report>
 
     <traci_server>
-        <remote-port value="61499"/>
+        <remote-port value="64158"/>
     </traci_server>
 
     <gui_only>
-        <gui-settings-file value="C:\aaUniFiles\FYP\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-08-25-19-43-30\osm.view.xml"/>
+        <gui-settings-file value="C:\Uni\Final Year Project\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-08-25-19-43-30\osm.view.xml"/>
         <start value="true"/>
         <delay value="1000"/>
     </gui_only>
 
 </sumoConfiguration>
+-->
+
+<statistics xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/statistic_file.xsd">
+    <performance clockBegin="1641876.22" clockEnd="1643289.82" clockDuration="1413.60" traciDuration="1407.93" realTimeFactor="0.45" vehicleUpdatesPerSecond="4.89" personUpdatesPerSecond="0.00" begin="0.00" end="631.00" duration="631.00"/>
+    <vehicles loaded="21" inserted="21" running="11" waiting="0"/>
+    <teleports total="0" jam="0" yield="0" wrongLane="0"/>
+    <safety collisions="0" emergencyStops="19" emergencyBraking="0"/>
+    <persons loaded="0" running="0" jammed="0"/>
+    <personTeleports total="0" abortWait="0" wrongDest="0"/>
+    <vehicleTripStatistics count="0" routeLength="0.00" speed="0.00" duration="0.00" waitingTime="0.00" timeLoss="0.00" departDelay="0.00" departDelayWaiting="-1.00" totalTravelTime="0.00" totalDepartDelay="0.00"/>
+    <bikeTripStatistics count="10" routeLength="690.74" speed="6.25" duration="100.40" waitingTime="6.40" timeLoss="16.45" departDelay="0.00" totalTravelTime="1004.00"/>
+    <pedestrianStatistics number="0" routeLength="0.00" duration="0.00" timeLoss="0.00"/>
+    <rideStatistics number="0"/>
+    <transportStatistics number="0"/>
+</statistics>

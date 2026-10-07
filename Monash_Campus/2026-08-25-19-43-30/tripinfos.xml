@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- generated on 2026-10-01T11:51:10.596679+10:00 by Eclipse SUMO GUI 1.26.0
+<!-- generated on 2026-10-05T15:59:53.819906+10:00 by Eclipse SUMO GUI 1.27.1
 <sumoConfiguration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/sumoConfiguration.xsd">
 
     <input>
-        <net-file value="C:\aaUniFiles\FYP\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-08-25-19-43-30\osm.net.xml"/>
-        <route-files value="C:\aaUniFiles\FYP\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-08-25-19-43-30\full_campus_v3.rou.xml"/>
-        <additional-files value="C:\aaUniFiles\FYP\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-08-25-19-43-30\osm.poly.xml.gz,C:\aaUniFiles\FYP\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-08-25-19-43-30\output.add.xml"/>
+        <net-file value="C:\Uni\Final Year Project\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-08-25-19-43-30\osm.net.xml"/>
+        <route-files value="C:\Uni\Final Year Project\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-08-25-19-43-30\full_campus_v3.rou.xml"/>
+        <additional-files value="C:\Uni\Final Year Project\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-08-25-19-43-30\osm.poly.xml.gz,C:\Uni\Final Year Project\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-08-25-19-43-30\output.add.xml"/>
     </input>
 
     <output>
-        <tripinfo-output value="C:\aaUniFiles\FYP\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-08-25-19-43-30\tripinfos.xml"/>
-        <statistic-output value="C:\aaUniFiles\FYP\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-08-25-19-43-30\stats.xml"/>
+        <tripinfo-output value="C:\Uni\Final Year Project\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-08-25-19-43-30\tripinfos.xml"/>
+        <statistic-output value="C:\Uni\Final Year Project\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-08-25-19-43-30\stats.xml"/>
     </output>
 
     <time>
@@ -38,11 +38,11 @@
     </report>
 
     <traci_server>
-        <remote-port value="61499"/>
+        <remote-port value="64158"/>
     </traci_server>
 
     <gui_only>
-        <gui-settings-file value="C:\aaUniFiles\FYP\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-08-25-19-43-30\osm.view.xml"/>
+        <gui-settings-file value="C:\Uni\Final Year Project\2026FYP-eBike-in-the-Loop\Monash_Campus\2026-08-25-19-43-30\osm.view.xml"/>
         <start value="true"/>
         <delay value="1000"/>
     </gui_only>
@@ -51,3 +51,14 @@
 -->
 
 <tripinfos xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/tripinfo_file.xsd">
+    <tripinfo id="fuzzy_wkal_ebike" depart="1.00" departLane="-1272942443#2_0" departPos="9.85" departSpeed="0.00" departDelay="0.00" arrival="35.00" arrivalLane="1147258794#2_0" arrivalPos="21.28" arrivalSpeed="5.59" duration="34.00" routeLength="241.43" waitingTime="0.00" waitingCount="0" stopTime="0.00" timeLoss="-17.14" rerouteNo="8" devices="tripinfo_fuzzy_wkal_ebike" vType="bike_live" speedFactor="0.83" vaporized=""/>
+    <tripinfo id="fuzzy_wokal_ebike" depart="1.00" departLane="-1272942443#2_0" departPos="9.85" departSpeed="0.00" departDelay="0.00" arrival="245.00" arrivalLane="668801471#3_0" arrivalPos="157.31" arrivalSpeed="6.53" duration="244.00" routeLength="1683.78" waitingTime="28.00" waitingCount="10" stopTime="0.00" timeLoss="56.42" rerouteNo="45" devices="tripinfo_fuzzy_wokal_ebike" vType="bike_live" speedFactor="1.03" vaporized=""/>
+    <tripinfo id="fuzzy_wokal_ebike" depart="246.00" departLane="668801471#3_0" departPos="157.31" departSpeed="0.00" departDelay="0.00" arrival="450.00" arrivalLane="4577074#2_0" arrivalPos="130.81" arrivalSpeed="4.39" duration="204.00" routeLength="1470.48" waitingTime="4.00" waitingCount="1" stopTime="0.00" timeLoss="29.62" rerouteNo="49" devices="tripinfo_fuzzy_wokal_ebike" vType="bike_live" speedFactor="1.03" vaporized=""/>
+    <tripinfo id="fuzzy_wokal_ebike" depart="451.00" departLane="4577074#2_0" departPos="130.81" departSpeed="0.00" departDelay="0.00" arrival="453.00" arrivalLane="405414870#0_0" arrivalPos="27.11" arrivalSpeed="3.95" duration="2.00" routeLength="27.11" waitingTime="0.00" waitingCount="0" stopTime="0.00" timeLoss="0.64" rerouteNo="2" devices="tripinfo_fuzzy_wokal_ebike" vType="bike_live" speedFactor="1.05" vaporized=""/>
+    <tripinfo id="fuzzy_wkal_ebike" depart="36.00" departLane="1147258794#2_0" departPos="21.28" departSpeed="0.00" departDelay="0.00" arrival="461.00" arrivalLane="998107627#1_0" arrivalPos="16.34" arrivalSpeed="3.80" duration="425.00" routeLength="2967.54" waitingTime="32.00" waitingCount="11" stopTime="0.00" timeLoss="117.59" rerouteNo="93" devices="tripinfo_fuzzy_wkal_ebike" vType="bike_live" speedFactor="1.09" vaporized=""/>
+    <tripinfo id="fuzzy_wkal_ebike" depart="462.00" departLane="998107627#2_0" departPos="30.80" departSpeed="0.00" departDelay="0.00" arrival="468.00" arrivalLane="998107627#4_0" arrivalPos="9.92" arrivalSpeed="4.90" duration="6.00" routeLength="10.12" waitingTime="0.00" waitingCount="0" stopTime="0.00" timeLoss="-3.25" rerouteNo="3" devices="tripinfo_fuzzy_wkal_ebike" vType="bike_live" speedFactor="0.99" vaporized=""/>
+    <tripinfo id="fuzzy_wokal_ebike" depart="455.00" departLane="405414870#0_0" departPos="27.11" departSpeed="0.00" departDelay="0.00" arrival="469.00" arrivalLane="-403774582#1_0" arrivalPos="18.58" arrivalSpeed="3.91" duration="14.00" routeLength="75.99" waitingTime="0.00" waitingCount="0" stopTime="0.00" timeLoss="-3.40" rerouteNo="7" devices="tripinfo_fuzzy_wokal_ebike" vType="bike_live" speedFactor="1.12" vaporized=""/>
+    <tripinfo id="fuzzy_wkal_ebike" depart="469.00" departLane="998107627#4_0" departPos="9.92" departSpeed="0.00" departDelay="0.00" arrival="470.00" arrivalLane="998107627#4_0" arrivalPos="9.92" arrivalSpeed="2.82" duration="1.00" routeLength="0.00" waitingTime="0.00" waitingCount="0" stopTime="0.00" timeLoss="-0.10" rerouteNo="1" devices="tripinfo_fuzzy_wkal_ebike" vType="bike_live" speedFactor="0.93" vaporized=""/>
+    <tripinfo id="fuzzy_wkal_ebike" depart="472.00" departLane="998107627#4_0" departPos="0.00" departSpeed="0.00" departDelay="0.00" arrival="528.00" arrivalLane="1004615767#1_0" arrivalPos="16.66" arrivalSpeed="3.74" duration="56.00" routeLength="272.71" waitingTime="0.00" waitingCount="0" stopTime="0.00" timeLoss="-2.57" rerouteNo="9" devices="tripinfo_fuzzy_wkal_ebike" vType="bike_live" speedFactor="0.94" vaporized=""/>
+    <tripinfo id="fuzzy_wkal_ebike" depart="529.00" departLane="1004615767#1_0" departPos="16.66" departSpeed="0.00" departDelay="0.00" arrival="547.00" arrivalLane="10801654#3_0" arrivalPos="7.23" arrivalSpeed="3.87" duration="18.00" routeLength="158.22" waitingTime="0.00" waitingCount="0" stopTime="0.00" timeLoss="-13.26" rerouteNo="8" devices="tripinfo_fuzzy_wkal_ebike" vType="bike_live" speedFactor="0.94" vaporized=""/>
+</tripinfos>
