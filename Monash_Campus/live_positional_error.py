@@ -61,10 +61,10 @@ import statistics
 # One path per run. Paths are relative to this script's own directory
 # unless you use an absolute path. Add or remove runs freely.
 RUN_FILES = [
-    "C:/Uni/Final Year Project/2026FYP-eBike-in-the-Loop/Data/all_methods_20261005-152039.csv",
-    "C:/Uni/Final Year Project/2026FYP-eBike-in-the-Loop/Data/all_methods_20261005-152040.csv",
-    "C:/Uni/Final Year Project/2026FYP-eBike-in-the-Loop/Data/all_methods_20261005-155952.csv",
-    "C:/Uni/Final Year Project/2026FYP-eBike-in-the-Loop/Data/all_methods_20261005-155953.csv",
+    "C:/aaUniFiles/FYP/2026FYP-eBike-in-the-Loop/Data/all_methods_20261005-152039.csv",
+    "C:/aaUniFiles/FYP/2026FYP-eBike-in-the-Loop/Data/all_methods_20261005-152040.csv",
+    "C:/aaUniFiles/FYP/2026FYP-eBike-in-the-Loop/Data/Data/all_methods_20261005-155952.csv",
+    "C:/aaUniFiles/FYP/2026FYP-eBike-in-the-Loop/Data/Data/all_methods_20261005-155953.csv",
 ]
 
 # Which column pair counts as "the GPS point" for this measurement.
