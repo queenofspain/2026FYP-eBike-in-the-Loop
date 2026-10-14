@@ -128,10 +128,10 @@ ROUTE_ID = None  # None = auto-pick when the file defines exactly one route
 
 # One path per run. Relative paths are relative to this script's folder.
 RUN_FILES = [
-    "C:/Uni/Final Year Project/2026FYP-eBike-in-the-Loop/Data/all_methods_20261005-152039.csv",
-    "C:/Uni/Final Year Project/2026FYP-eBike-in-the-Loop/Data/all_methods_20261005-152040.csv",
-    "C:/Uni/Final Year Project/2026FYP-eBike-in-the-Loop/Data/all_methods_20261005-155952.csv",
-    "C:/Uni/Final Year Project/2026FYP-eBike-in-the-Loop/Data/all_methods_20261005-155953.csv",
+    "C:/aaUniFiles/FYP/2026FYP-eBike-in-the-Loop/Data/all_methods_20261005-152039.csv",
+    "C:/aaUniFiles/FYP/2026FYP-eBike-in-the-Loop/Data/all_methods_20261005-152040.csv",
+    "C:/aaUniFiles/FYP/2026FYP-eBike-in-the-Loop/Data/all_methods_20261005-155952.csv",
+    "C:/aaUniFiles/FYP/2026FYP-eBike-in-the-Loop/Data/all_methods_20261005-155953.csv",
 ]
 
 # CSV columns
@@ -480,6 +480,8 @@ def load_run(csv_path):
         first_method = None
         raw_fixes, filt_fixes = {}, {}
         for row in reader:
+            if not (row.get(COL_METHOD) or "").strip() or not (row.get(COL_FIX) or "").strip():
+                continue  # blank/padding rows at the end of some logs
             method = row[COL_METHOD]
             k_on = _is_true(row[COL_KALMAN])
             fix = int(float(row[COL_FIX]))
