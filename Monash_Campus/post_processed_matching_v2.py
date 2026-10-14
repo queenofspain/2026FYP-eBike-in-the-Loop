@@ -124,7 +124,7 @@ MATCH_THRESHOLD = 100.0
 # full_campus_v3_rou.xml. Path resolves relative to this script's own
 # directory, same convention as SUMO_CFG. Set to None to skip file loading
 # and use GROUND_TRUTH_ROUTE below instead.
-GROUND_TRUTH_ROUTE_FILE = r"Monash_Campus\2026-08-25-19-43-30\full_campus_v3.rou.xml"
+GROUND_TRUTH_ROUTE_FILE = r"2026-08-25-19-43-30\full_campus_v3.rou.xml"
 
 # Which <route id="..."> to use if the file defines more than one. None
 # picks the first <route> element in the file, which is fine for a
