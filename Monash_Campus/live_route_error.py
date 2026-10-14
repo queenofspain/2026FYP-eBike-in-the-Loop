@@ -155,6 +155,11 @@ REF_MAX_SPEED_MPS = 12.0    # eBike top speed (~43 km/h); also used for jumps
 REF_OUTLIER_M = 25.0        # raw fixes further than this from the route are
                             # treated as GPS outliers and interpolated over
 REF_SMOOTH_FIXES = 5        # rolling-median window (odd); 1 = no smoothing
+REF_PRED_WEIGHT = 0.2       # metres of distance-to-route traded per metre away from
+                            # the predicted progress. Stops the reference jumping to
+                            # the other leg where the route goes out and back along
+                            # the same road. 0 = plain nearest point (old behaviour)
+REF_PRED_MAX_DT = 10.0      # after a gap longer than this (s), don't use the prediction
 
 MATCH_SEARCH_M = 150.0      # matched points are located within +/- this of s_ref
 
@@ -392,6 +397,35 @@ class RouteLine:
         s = self.s[i0 + k] + t[k] * self.seglen[i0 + k]
         return float(min(max(s, lo), hi)), float(d[k])
 
+    def project_pred(self, x, y, lo, hi, s_pred, weight):
+        """Like project(), but each candidate costs
+        distance + weight * |s - s_pred|. Returns (s, distance)."""
+        lo = max(lo, 0.0)
+        hi = min(hi, self.length)
+        if hi < lo:
+            lo = hi
+        i0 = max(int(np.searchsorted(self.s, lo, side="right")) - 1, 0)
+        i0 = min(i0, self.nseg - 1)
+        i1 = min(int(np.searchsorted(self.s, hi, side="left")), self.nseg)
+        if i1 <= i0:
+            i1 = i0 + 1
+        A, AB, L2 = self.P[i0:i1], self.seg[i0:i1], self.seg2[i0:i1]
+        safe = np.where(L2 > 0, L2, 1.0)
+        # the point on each segment closest to the prediction, and the one
+        # closest to (x, y); keep whichever is cheaper
+        t_xy = np.clip(np.where(L2 > 0, ((x - A[:, 0]) * AB[:, 0] + (y - A[:, 1]) * AB[:, 1]) / safe, 0.0), 0.0, 1.0)
+        seglen = self.seglen[i0:i1]
+        t_pr = np.clip(np.where(seglen > 0, (s_pred - self.s[i0:i1]) / np.where(seglen > 0, seglen, 1.0), 0.0), 0.0, 1.0)
+        best = None
+        for t in (t_xy, t_pr):
+            s = np.clip(self.s[i0:i1] + t * seglen, lo, hi)
+            d = np.hypot(A[:, 0] + t * AB[:, 0] - x, A[:, 1] + t * AB[:, 1] - y)
+            c = d + weight * np.abs(s - s_pred)
+            k = int(np.argmin(c))
+            if best is None or c[k] < best[0]:
+                best = (c[k], float(s[k]), float(d[k]))
+        return best[1], best[2]
+
     def acceptable_edges(self, s, tol):
         """Edge IDs the rider could legitimately be on at chainage s, and
         whether a junction is within tol."""
@@ -524,16 +558,24 @@ def build_reference(route, raw_fixes):
     d_raw = np.full(len(fixes), np.nan)
 
     prev_s = prev_t = None
+    v = 0.0                                  # smoothed progress rate (m/s)
     for i, f in enumerate(fixes):
         _, x, y = raw_fixes[f]
         if prev_s is None:
             lo, hi = 0.0, (REF_INIT_SEARCH_M if REF_INIT_SEARCH_M is not None else route.length)
+            si, di = route.project(x, y, lo, hi)
         else:
             dt = max(t[i] - prev_t, 1.0)
             lo, hi = prev_s - REF_BACK_M, prev_s + REF_AHEAD_M + REF_MAX_SPEED_MPS * dt
-        si, di = route.project(x, y, lo, hi)
+            if REF_PRED_WEIGHT > 0 and dt <= REF_PRED_MAX_DT:
+                si, di = route.project_pred(x, y, lo, hi, prev_s + v * dt, REF_PRED_WEIGHT)
+            else:
+                si, di = route.project(x, y, lo, hi)
         d_raw[i] = di
         if di <= REF_OUTLIER_M:
+            if prev_s is not None:
+                rate = min(max((si - prev_s) / max(t[i] - prev_t, 1.0), 0.0), REF_MAX_SPEED_MPS)
+                v = 0.7 * v + 0.3 * rate
             s[i] = si
             prev_s, prev_t = si, t[i]
 
